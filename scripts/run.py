@@ -44,9 +44,15 @@ def run():
         for key, value in parameters.items():
             f.write('{} = {}\n'.format(key, value))
     subprocess.run(
+        ['qsub', '-pe', 'dc_*', str(compute_processes + 1), 'submit_job.sh'],
+        check=True
+    )
+    '''
+    subprocess.run(
         ['mpirun', '-n', str(compute_processes + 1), 'epamss', 'data/input'],
         check=True
     )
+    '''
 
 if __name__ == '__main__':
     run()
