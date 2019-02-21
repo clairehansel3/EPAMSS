@@ -122,7 +122,8 @@ int main(int argc, char* argv[])
   Parameters parameters{argv[1], world};
 
   // seed random number generator
-  std::cout << "process: " << world.rank() << " seed: " << parameter.seed << std::endl;
+  std::cout << "process: " << world.rank() << " seed: " << parameters.seed <<
+    std::endl;
   seedRandom(world.rank(), parameters.seed);
 
   // run program

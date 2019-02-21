@@ -17,7 +17,7 @@
 
 import subprocess
 
-hoffman2 = False
+Hoffman2 = False
 
 def run():
     compute_processes = 1
@@ -32,7 +32,7 @@ def run():
         'vartheta_cutoff': 10,
         'ion_atomic_number':1,
         'minimum_steps_per_betatron_period':200,
-        'particles':100,
+        'particles_target':100,
         'analysis_points_target':1000,
         'spline_points':1000,
         'max_order':1,
@@ -52,7 +52,7 @@ def run():
         )
     else:
         subprocess.run(
-            ['mpirun', '-n', str(compute_processes+1), 'epamss', 'data/input'],
+            ['mpirun', '-np', str(compute_processes+1), 'epamss', 'data/input'],
             check=True
         )
 

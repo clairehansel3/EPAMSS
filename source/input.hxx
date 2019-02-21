@@ -65,7 +65,7 @@ public:
   std::size_t actual_particles;
   std::size_t particles_per_process;
   std::size_t compute_processes;
-  std::size_t analysis_points;
+  std::size_t actual_analysis_points;
 
   void writeOutputFile(double seconds);
 

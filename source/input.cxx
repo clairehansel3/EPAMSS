@@ -294,7 +294,7 @@ void Parameters::writeOutputFile(double seconds)
     EPAMSS_WRITE(file, actual_particles);
     EPAMSS_WRITE(file, particles_per_process);
     EPAMSS_WRITE(file, compute_processes);
-    EPAMSS_WRITE(file, analysis_points);
+    EPAMSS_WRITE(file, actual_analysis_points);
     file << "seconds_elapsed = " << seconds << '\n';
     file << "minutes_elapsed = " << (seconds / 60) << '\n';
     file << "hours_elapsed = " << (seconds / (60 * 60)) << '\n';
@@ -326,7 +326,7 @@ void Parameters::computeDependentParameters(int processes)
   minimum_angle = 2 * ion_atomic_number * classical_electron_radius / (gamma *
     interaction_radius);
   compute_processes = static_cast<std::size_t>(processes) - 1;
-  actual_particles = particles + compute_processes - particles % compute_processes;
+  actual_particles = particles_target + compute_processes - particles_target % compute_processes;
   particles_per_process = actual_particles / compute_processes;
   assert(actual_particles % compute_processes == 0);
   betatron_frequency = std::sqrt(alpha) / bennett_radius;
@@ -335,5 +335,5 @@ void Parameters::computeDependentParameters(int processes)
   omega_on_axis = maximum_ion_density * interaction_radius * step_size;
   max_scattering_r_div_a = std::sqrt((std::sqrt(omega_on_axis) / 5) - 1);
   percent_with_scattering = 1 - 5 / std::sqrt(omega_on_axis);
-  analysis_points = (steps / stride) + 1;
+  actual_analysis_points = (steps / stride) + 1;
 }
