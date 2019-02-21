@@ -22,12 +22,12 @@
 
 static boost::random::mt19937 twister;
 
-void seedRandom(unsigned thread_rank)
+void seedRandom(unsigned thread_rank, unsigned seed)
 {
-  twister.seed(std::time(0));
-  boost::random::uniform_int_distribution<unsigned> dist;
-  auto seed = dist(twister) + thread_rank;
   twister.seed(seed);
+  boost::random::uniform_int_distribution<unsigned> dist;
+  auto new_seed = dist(twister) + thread_rank;
+  twister.seed(new_seed);
 }
 
 double randomUniform()
@@ -35,7 +35,6 @@ double randomUniform()
   boost::random::uniform_real_distribution<double> dist;
   return dist(twister);
 }
-
 
 double randomNormal(double mean, double std)
 {

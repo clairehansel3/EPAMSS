@@ -197,7 +197,7 @@ static void get_from_dict(std::map<std::string, std::string>& dict,
 #define EPAMSS_READ_PARAMETER(dict, param) get_from_dict(dict, #param, param)
 
 
-Parameters::Parameters(const char* input_path, int processes)
+Parameters::Parameters(const char* input_path, boost::mpi::communicator& world)
 {
   auto input = readFile(input_path);
   if (!input)
@@ -214,7 +214,7 @@ Parameters::Parameters(const char* input_path, int processes)
   EPAMSS_READ_PARAMETER(dict, vartheta_cutoff);
   EPAMSS_READ_PARAMETER(dict, ion_atomic_number);
   EPAMSS_READ_PARAMETER(dict, minimum_steps_per_betatron_period);
-  EPAMSS_READ_PARAMETER(dict, particles);
+  EPAMSS_READ_PARAMETER(dict, particles_target);
   EPAMSS_READ_PARAMETER(dict, analysis_points_target);
   EPAMSS_READ_PARAMETER(dict, spline_points);
   try {
@@ -222,7 +222,14 @@ Parameters::Parameters(const char* input_path, int processes)
     get_from_dict(dict, "seed", seed_str);
     seed = boost::numeric_cast<unsigned>(std::stoull(seed_str));
   } catch (std::runtime_error&) {
-    seed = std::time(NULL);
+    if (world.rank() == 0) {
+      seed = std::time(nullptr);
+      for (int i = 1; i != world.size(); ++i) {
+        world.send(i, 0, &seed, 1);
+      }
+    } else {
+      world.recv(0, 0, &seed, 1);
+    }
   }
   EPAMSS_READ_PARAMETER(dict, max_order);
   EPAMSS_READ_PARAMETER(dict, max_integration_depth);
@@ -231,16 +238,15 @@ Parameters::Parameters(const char* input_path, int processes)
   EPAMSS_READ_PARAMETER(dict, phase_space_filename);
   EPAMSS_READ_PARAMETER(dict, output_phase_space);
 
-  if (dict.size() != 0) {
-    std::string error_msg("unknown extra parameters defined in input file: ");
+  if (world.rank() == 0) {
     for (auto pair : dict) {
-      error_msg += pair.first;
-      error_msg += ' ';
+      std::cerr << "WARNING: extraneous parameter '" << pair.first <<
+        "' defined in input file with value '" << pair.second << "'" <<
+        std::endl;
     }
-    throw std::runtime_error(error_msg);
   }
 
-  computeDependentParameters(processes);
+  computeDependentParameters(world.size());
 }
 
 #define EPAMSS_WRITE(file, param) file << #param " = " << param << '\n'
@@ -261,7 +267,7 @@ void Parameters::writeOutputFile(double seconds)
     EPAMSS_WRITE(file, vartheta_cutoff);
     EPAMSS_WRITE(file, ion_atomic_number);
     EPAMSS_WRITE(file, minimum_steps_per_betatron_period);
-    EPAMSS_WRITE(file, particles);
+    EPAMSS_WRITE(file, particles_target);
     EPAMSS_WRITE(file, analysis_points_target);
     EPAMSS_WRITE(file, spline_points);
     EPAMSS_WRITE(file, seed);

@@ -35,6 +35,7 @@ static void runMainProcess(boost::mpi::communicator& world, Parameters& p)
     for (std::size_t i = 0; i != p.compute_processes; ++i) {
       world.recv(i + 1, 1, reinterpret_cast<char*>(temp_statistics.get()),
         sizeof(Statistics) * p.analysis_points);
+      std::cout << "received (ns) statistics for process " << i + 1 << std::endl;
       for (std::size_t j = 0; j != p.analysis_points; ++j)
         statistics[j] = Statistics(statistics[j], temp_statistics[j]);
     }
@@ -42,12 +43,14 @@ static void runMainProcess(boost::mpi::communicator& world, Parameters& p)
     for (std::size_t i = 0; i != p.compute_processes; ++i) {
       world.recv(i + 1, 1, reinterpret_cast<char*>(temp_statistics.get()),
         sizeof(Statistics) * p.analysis_points);
+    std::cout << "received (s) statistics for process " << i + 1 << std::endl;
       for (std::size_t j = 0; j != p.analysis_points; ++j)
         statistics[p.analysis_points + j] = Statistics(
           statistics[p.analysis_points + j], temp_statistics[j]);
     }
   }
   // write to file
+  std::cout << "writing to file" << std::endl;
   std::ofstream statistics_file;
   statistics_file.exceptions(std::ofstream::failbit | std::ofstream::badbit);
   statistics_file.open(p.statistics_filename, std::ofstream::binary);
@@ -116,10 +119,11 @@ int main(int argc, char* argv[])
   if (argc != 2)
     throw std::runtime_error("expected a single argument containing the path to"
       "the input file");
-  Parameters parameters{argv[1], world.size()};
+  Parameters parameters{argv[1], world};
 
   // seed random number generator
-  seedRandom(world.rank());
+  std::cout << "process: " << world.rank() << " seed: " << parameter.seed << std::endl;
+  seedRandom(world.rank(), parameters.seed);
 
   // run program
   if (world.rank() == 0) {

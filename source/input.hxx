@@ -16,6 +16,7 @@
 #ifndef EPAMSS_INPUT_HXX
 #define EPAMSS_INPUT_HXX
 
+#include <boost/mpi/communicator.hpp>
 #include <cstddef>
 #include <string>
 
@@ -23,7 +24,7 @@ class Parameters {
 
 public:
 
-  Parameters(const char* input_path, int processes);
+  Parameters(const char* input_path, boost::mpi::communicator& world);
 
   // specified in input
   double maximum_ion_density;               // [m^-3]
@@ -36,7 +37,7 @@ public:
   double vartheta_cutoff;
   std::size_t ion_atomic_number;
   std::size_t minimum_steps_per_betatron_period;
-  std::size_t particles;
+  std::size_t particles_target;
   std::size_t analysis_points_target;
   std::size_t spline_points;
   unsigned seed;

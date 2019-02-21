@@ -16,7 +16,7 @@
 #ifndef EPAMSS_RANDOM
 #define EPAMSS_RANDOM
 
-void seedRandom(unsigned thread_rank);
+void seedRandom(unsigned thread_rank, unsigned seed);
 
 double randomUniform();
 

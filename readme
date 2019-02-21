@@ -1,0 +1,245 @@
+EPAMSS: Equilibrium Plasma Accelerator Multiple Scattering Simulator
+Claire Hansel
+If you have any questions email me at clairehansel3@gmail.com
+
+1) Installation
+
+Installation requires the following:
+• A C++17 compatible compiler
+• MPI (any implementation is OK as long as it works with boost.MPI)
+• boost (make sure that the boost.MPI and boost.Math libraries are built)
+To build EPAMSS, run 'make' to build the executable 'epamss'.
+
+2) Running Simulations
+
+Each simulation requires an input file which is described in section 3. The
+command 'mpirun -np CORES /PATH/TO/EPAMSS /PATH/TO/INPUT' runs a simulation
+where CORES is the number of cores (which must be at least 2). A simulation will
+generate an output file, a statistics file. If output_phase_space is set to true
+in the input file, a phase space file will also be generated as part of the
+output. Section 5 details how to use the python helper scripts including run.py
+which simplifies running simulations. Section 6 details how to run a basic
+example simulation.
+
+3) Input File Format
+
+An input file is a plain text file where each line is of the form
+"PARAMETER = VALUE". VALUE must be the correct type for the parameter (for
+example 1.5e+14 is an allowed value of 'electron_linear_density' but not
+'particles_target' because 'electron_linear_density' must be a real number and
+'particles_target' must be an integer. The following parameters must be
+specified (in any order):
+
+• maximum_ion_density (real number, units m^-3)
+  The maximum number density of plasma ions. Since the plasma ions follow a
+  Bennett distribution, this maximum density occurs on axis at r=0.
+• plasma_length (real number, units: m)
+  The length of the plasma.
+• beam_energy (real number, units: GeV)
+  The energy of electrons in the beam.
+• electron_linear_density (real number, units: m^-1)
+  The number of beam electrons per unit longitudinal length of the beam. Because
+  the electrons are distributed according to a Bennett distribution, the maximum
+  number density of beam electrons occurs on axis and is given by
+  electron_linear_density / (pi * bennett_radius^2).
+• bennett_radius (real number, units: m)
+  The Bennett radius of the beam electron and the plasma ion distributions.
+• interaction_radius (real number, units: m)
+  The length scale of beam electron-plasma ion coulomb scattering. The electron
+  ion scattering cross section is given by pi * interaction_radius^2.
+• integration_tolerance (real number)
+  The tolerance of the numerical integrations used to create the probability
+  density function of the multiple scattering angular distribution.
+• vartheta_cutoff
+  The parameter vartheta ranges from zero to infinity, but in order to use an
+  evenly spaced spline a cutoff value must be chosen. A value of 10 is fine for
+  pretty much all cases.
+• ion_atomic_number (integer)
+  The Z of the plasma ion species.
+• minimum_steps_per_betatron_period (integer)
+  The absolute minimum number of z steps the code uses to track a particle
+  during a single betatron oscillation. This parameter is used to compute the
+  step size. A value around 200 is good (and probably a little overkill) but the
+  particle tracking starts to lose accuracy as you lower this parameter.
+• particles_target (integer)
+  The number of particles to track during the simulation. Because the number of
+  particles must evenly divide into the number of compute processes, this
+  parameter is usually increased by a few particles. The actual number of
+  particles used in a simulation is given by the parameter 'actual_particles' in
+  the output file.
+• analysis_points_target (integer)
+  The number of points at which statistics and possibly the phase space data are
+  saved. Similar to the parameter 'particles_target', this parameter is slightly
+  adjusted in order for it to divide evenly. The actual number of analysis
+  points used is given by the parameter 'actual_analysis_points' in the output
+  file.
+• spline_points (integer)
+  Number of points at which the probability density function of the multiple
+  scattering angular distribution is evaluated using numerical integration. A
+  spline is then constructed to interpolate between these points.
+• max_order (integer)
+  The maximum order in B^-1 the probability density function of the multiple
+  scattering angular distribution is computed to. If this parameter is 0, then
+  a gaussian approximation will be used and the parameters
+  'integration_tolerance', 'vartheta_cutoff', 'spline_points', and
+  'max_integration_depth' will no longer matter.
+• max_integration_depth (integer)
+  Maximum number of recursion allowed in adaptive numerical integration when
+  evaluating the probability density function of the multiple scattering angular
+  distribution.
+• output_filename (path)
+  The path at which to generate the output file. If a file already exists here
+  it will be overwritten.
+• statistics_filename (path)
+  The path at which to generate the statistics file. If a file already exists
+  here it will be overwritten.
+• phase_space_filename (path)
+  Each process outputs its phase space data at the path given by
+  'phase_space_filename' appended with an underscore and then the rank of the
+  process. Note that the main process has rank 0 and does not output a phase
+  space file, and the ranks of the compute processes begin at 1.
+• output_phase_space (bool)
+  Whether or not to generate phase space data. This parameter should be equal to
+  either "true" or "false". Note that generating phase space data does increase
+  the time the simulation takes and may generate a lot of data.
+
+One parameter is optional and may or may not be included:
+
+• seed (integer, optional)
+  The seed for the random number generator. If this is not specified, the value
+  std::time(nullptr) is automatically used. Two simulations with the same seed
+  and the same input parameters run by the same executable should produce the
+  same data.
+
+4) Output Files
+
+The simulation generates two or three outputs: the output file, the statistics
+file, and a number of phase space files which are only generated if
+'output_phase_space' is set to 'true'. The output file is the same format as the
+input file except it has the following extra parameters (in no particular
+order) which are mostly computed using simple analytical formulae from the
+input file:
+
+• seed (unsigned)
+  If the seed is not specified in the input file, it is set to
+  std::time(nullptr). Otherwise this has the same value as in the input file.
+• ion_linear_density (real, units: m^-1)
+  The number of plasma ions per unit longitudinal length of the plasma.
+• gamma (real)
+  The beam's lorentz factor.
+• alpha (real)
+  The dimensionless parameter alpha (see paper).
+• step_size (real, units: m)
+  The step size of the simulation.
+• cross_section (real, units: m^2)
+  The total beam electron-plasma ion scattering cross section.
+• minimum_angle (real, units: rad)
+  The angle for which smaller angles are ignored for single scattering.
+• betatron_frequency (real, units: m^-1)
+  The frequency of small angle betatron oscillations.
+• betatron_period (real, units: m)
+  The period of small angle betatron oscillations.
+• max_scattering_r_div_a (real)
+  The maximum radius such that particles with a larger radius do not undergo
+  enough scatters per step for molière's theory to be valid. This value is given
+  in units of the Bennett radius.
+• percent_with_scattering (real)
+  The percent of the beam that has radius less than the maximum radius such that
+  particles with a larger radius do not undergo enough scatters per step for
+  molière's theory to be valid.
+• omega_on_axis (real)
+  The value of omega at r=0.
+• steps (integer)
+  The total number of steps in the simulation.
+• stride (integer)
+  If this has value 1, the statistics and possibly phase space data are saved
+  every step. If this has value 2, they are saved every 2 steps, etc.
+• actual_particles (integer)
+  The actual number of particles in the simulation.
+• particles_per_process (integer)
+  The number of particles per core.
+• compute_processes (integer)
+  The number of cores tracking particles. Equal to the total number of processes
+  minus one (for the main process which doesn't track particles).
+• actual_analysis_points (integer)
+  The actual number of points at which statistics and possibly the phase space
+  data are saved.
+• seconds_elapsed (real, units: seconds)
+  Number of seconds the simulation took.
+• minutes_elapsed (real, units: minutes)
+  Number of minutes the simulation took.
+• hours_elapsed (real, units: hours)
+  Number of hours the simulation took.
+• approx_core_hours_elapsed (real, units: cores * hours)
+  The number of hours the simulation took times the number of compute processes.
+  If this value is for example 10, the simulation takes approximately 10 hours
+  on one core or one hour on ten cores. Note that in general the speedup is not
+  linear and so this is just an approximation.
+
+The statistics file is a binary array of doubles. The array is a 3D array with
+dimensions (2, actual_analysis_points, 14). The first dimension indicates
+whether or not scattering is enabled, if it is 1 (0 if indexing starts at 0)
+then scattering is not enabled. If it is 2 (1 if indexing starts at 0) then
+scattering is enabled. The next dimension indicates which analysis point the
+data were taken at. Finally the last dimension indicates which statistic is
+wanted, where the statistics are (in order): Mean(x), Mean(x'), Mean(y),
+Mean(y'), Cov(x, x), Cov(x, x'), Cov(x, y), Cov(x, y'), Cov(x', x'), Cov(x', y),
+Cov(x', y'), Cov(y, y), Cov(y, y'), and Cov(y', y').
+
+Each compute process outputs a phase space file. A phase space file is a binary
+array of doubles. The array is a 4D array with dimensions (2,
+actual_analysis_points, particles_per_process, 4). The first dimension indicates
+whether or not scattering is enabled, if it is 1 (0 if indexing starts at 0)
+then scattering is not enabled. If it is 2 (1 if indexing starts at 0) then
+scattering is enabled. The next dimension indicates which analysis point the
+data were taken at. The next dimension indicates which particle the data
+correspond to. Finally the last dimension indicates which phase space value is
+wanted, where the phase space values are (in order): x, x', y, y'.
+
+5) Using Python Helper Scripts
+
+Two Python helper scripts are provided: run.py and analyze.py. run.py generates
+an input file and then runs EPAMSS. analyze.py reads data files and produces
+plots of emittance growth. analyze.py includes a number of helpful functions and
+is designed to be modified.
+
+6) Running an Example Simulation
+
+First follow the instructions in section 1 to install EPAMSS. Make sure to copy
+or link the executable to a folder in your PATH so that the command 'epamss'
+invokes the program. Next create a new folder anywhere for the example
+simulation. For the purposes of this tutorial, $EXAMPLE is the path of this
+folder and $EPAMSS is the path to the git directory containing this readme.
+Now cd to the example directory:
+  cd $EXAMPLE
+copy the python scripts to the example directory:
+  cp $EPAMSS/scripts/*.py .
+Next make the directories 'data' and 'results' in the example directory:
+  mkdir data
+  mkdir results
+Run the simulation:
+  python3 run.py
+Run the analysis:
+  python3 analyze.py
+Plots of the results should now be in $EXAMPLE/results
+
+6) Running on Hoffman2
+
+Unfortunately EPAMSS does not compile with intel's C++ compiler icpc due to lack
+of c++17 compatibility. Additionally the default version of gcc is old, so make
+sure to load the most up to date version of gcc. Python3 is also not loaded by
+default. For MPI I usually use OpenMPI which must be also loaded. The
+preinstalled version of boost on Hoffman2 does not contain boost.MPI, and
+so you must download boost and install it to a prefix in your home folder. Make
+sure boost builds boost.MPI and boost.Math (I don't think it does this by
+default). In the makefile, add '-I /path/to/prefix/include' to FLAGS and remove
+'-lboost_mpi' from LIBS and replace it with '/path/to/prefix/lib/libboost_mpi.a'
+. Running an example simulation is the exact same as in section 6 except that
+you also have to copy 'run_epamss.sh' to your example folder and then you have
+to replace EMAIL_ADDRESS and PATH_TO_EPAMSS_EXECUTABLE with the correct values.
+You also have to set Hoffman2 in 'run.py' to True. I highly recommend using
+sshfs to mount your Hoffman2 home folder to your computer. It is imporant that
+you run 'run.py' from the login node on Hoffman2 but you run analyze.py from
+your local machine. This is because Hoffman2 does not have a ui and thus does
+not have matplotlib functionality. If you don't want to use sshfs, copy the
+example folder back to your local machine to run analyze.py.

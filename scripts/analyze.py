@@ -30,8 +30,8 @@ parameter_types = {
     'vartheta_cutoff': float,
     'ion_atomic_number': int,
     'minimum_steps_per_betatron_period': int,
-    'particles': int,
-    'analysis_points_target': int,
+    'particles_target': int,
+    'actual_analysis_points_target': int,
     'spline_points': int,
     'seed': int,
     'max_order': int,
@@ -56,7 +56,7 @@ parameter_types = {
     'actual_particles': int,
     'particles_per_process': int,
     'compute_processes': int,
-    'analysis_points': int,
+    'actual_analysis_points': int,
     'seconds_elapsed': float,
     'minutes_elapsed': float,
     'hours_elapsed': float,
@@ -68,21 +68,28 @@ def getOutput(path):
     with open(path, 'r') as f:
         for line in f:
             key, _, value = line.split()
+            if parameter_types[key] is bool:
+                if value in ('true', 'True'):
+                    output[key] = True
+                elif value in ('false', 'False'):
+                    output[key] = False
+                else:
+                    assert False
             output[key] = parameter_types[key](value)
     return output
 
 def getZ(output):
-    return np.linspace(0, output['plasma_length'], output['analysis_points'])
+    return np.linspace(0, output['plasma_length'], output['actual_analysis_points'])
 
 def getStatistics(output):
     raw_data = np.memmap(
         output['statistics_filename'],
         dtype=np.float64,
         mode='r',
-        shape=(2, output['analysis_points'], 14)
+        shape=(2, output['actual_analysis_points'], 14)
     )
-    means = np.empty((2, 4, output['analysis_points']))
-    covariance_matrix = np.empty((2, 4, 4, output['analysis_points']))
+    means = np.empty((2, 4, output['actual_analysis_points']))
+    covariance_matrix = np.empty((2, 4, 4, output['actual_analysis_points']))
     for i in (0, 1):
         means[i, 0, :] = raw_data[i, :, 0]
         means[i, 1, :] = raw_data[i, :, 1]
@@ -102,17 +109,17 @@ def getStatistics(output):
 
 def getPhaseSpace(output):
     assert output['output_phase_space']
-    phase_space = np.empty((2, 4, output['actual_particles'], output['analysis_points']))
+    phase_space = np.empty((2, 4, output['actual_particles'], output['actual_analysis_points']))
     for i in range(output['compute_processes']):
         raw_data = np.memmap(
             '{}_{}'.format(output['phase_space_filename'], i + 1),
             dtype=np.float64,
             mode='r',
-            shape=(2, output['analysis_points'], output['particles_per_process'], 4)
+            shape=(2, output['actual_analysis_points'], output['particles_per_process'], 4)
         )
         for j in (0, 1):
             for k in range(4):
-                for step in range(output['analysis_points']):
+                for step in range(output['actual_analysis_points']):
                     phase_space[j, k, i*output['particles_per_process']:
                         (i+1)*output['particles_per_process'], step] = \
                         raw_data[j, step, :, k]
@@ -168,7 +175,7 @@ def getEmittanceFromPhaseSpace(phase_space):
     return np.array(emit)
 
 def getEnergyFromPhaseSpace(output, phase_space):
-    energy = np.empty((2, output['particles'], output['analysis_points']))
+    energy = np.empty((2, output['particles'], output['actual_analysis_points']))
     for i in (0, 1):
         for particle in range(output['actual_particles']):
             energy[i, particle, :] = phase_space[i, 1, particle, :] ** 2 + \
