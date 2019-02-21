@@ -28,25 +28,25 @@
 static void runMainProcess(boost::mpi::communicator& world, Parameters& p)
 {
   // allocate statistics
-  auto statistics = std::make_unique<Statistics[]>(2 * p.analysis_points);
+  auto statistics = std::make_unique<Statistics[]>(2 * p.actual_analysis_points);
   {
     // no scattering
-    auto temp_statistics = std::make_unique<Statistics[]>(p.analysis_points);
+    auto temp_statistics = std::make_unique<Statistics[]>(p.actual_analysis_points);
     for (std::size_t i = 0; i != p.compute_processes; ++i) {
       world.recv(i + 1, 1, reinterpret_cast<char*>(temp_statistics.get()),
-        sizeof(Statistics) * p.analysis_points);
+        sizeof(Statistics) * p.actual_analysis_points);
       std::cout << "received (ns) statistics for process " << i + 1 << std::endl;
-      for (std::size_t j = 0; j != p.analysis_points; ++j)
+      for (std::size_t j = 0; j != p.actual_analysis_points; ++j)
         statistics[j] = Statistics(statistics[j], temp_statistics[j]);
     }
     // scattering
     for (std::size_t i = 0; i != p.compute_processes; ++i) {
       world.recv(i + 1, 1, reinterpret_cast<char*>(temp_statistics.get()),
-        sizeof(Statistics) * p.analysis_points);
+        sizeof(Statistics) * p.actual_analysis_points);
     std::cout << "received (s) statistics for process " << i + 1 << std::endl;
-      for (std::size_t j = 0; j != p.analysis_points; ++j)
-        statistics[p.analysis_points + j] = Statistics(
-          statistics[p.analysis_points + j], temp_statistics[j]);
+      for (std::size_t j = 0; j != p.actual_analysis_points; ++j)
+        statistics[p.actual_analysis_points + j] = Statistics(
+          statistics[p.actual_analysis_points + j], temp_statistics[j]);
     }
   }
   // write to file
@@ -54,7 +54,7 @@ static void runMainProcess(boost::mpi::communicator& world, Parameters& p)
   std::ofstream statistics_file;
   statistics_file.exceptions(std::ofstream::failbit | std::ofstream::badbit);
   statistics_file.open(p.statistics_filename, std::ofstream::binary);
-  for (std::size_t i = 0; i != 2 * p.analysis_points; ++i)
+  for (std::size_t i = 0; i != 2 * p.actual_analysis_points; ++i)
     statistics[i].writeToFile(statistics_file);
 }
 
@@ -84,24 +84,24 @@ static void runComputeProcess(boost::mpi::communicator& world, Parameters& p)
   {
     auto beam_copy = std::make_unique<Particle[]>(p.particles_per_process);
     std::copy_n(beam.get(), p.particles_per_process, beam_copy.get());
-    auto statistics = std::make_unique<Statistics[]>(p.analysis_points);
+    auto statistics = std::make_unique<Statistics[]>(p.actual_analysis_points);
     solve(beam_copy.get(), statistics.get(), scattering, phase_space_file_ptr,
       p.particles_per_process, p.steps, p.stride, p.bennett_radius,
       p.step_size, p.alpha, p.maximum_ion_density, p.cross_section,
       p.minimum_angle, false, world.rank() == 1);
     world.send(0, 1, reinterpret_cast<char*>(statistics.get()),
-       sizeof(Statistics) * p.analysis_points);
+       sizeof(Statistics) * p.actual_analysis_points);
   }
 
   // scattering
   {
-    auto statistics = std::make_unique<Statistics[]>(p.analysis_points);
+    auto statistics = std::make_unique<Statistics[]>(p.actual_analysis_points);
     solve(beam.get(), statistics.get(), scattering, phase_space_file_ptr,
       p.particles_per_process, p.steps, p.stride, p.bennett_radius,
       p.step_size, p.alpha, p.maximum_ion_density, p.cross_section,
       p.minimum_angle, true, world.rank() == 1);
     world.send(0, 1, reinterpret_cast<char*>(statistics.get()),
-       sizeof(Statistics) * p.analysis_points);
+       sizeof(Statistics) * p.actual_analysis_points);
   }
 }
 
