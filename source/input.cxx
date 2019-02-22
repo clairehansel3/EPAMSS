@@ -333,7 +333,13 @@ void Parameters::computeDependentParameters(int processes)
   betatron_period = 2 * boost::math::constants::pi<double>() /
     betatron_frequency;
   omega_on_axis = maximum_ion_density * cross_section * step_size;
-  max_scattering_r_div_a = std::sqrt((std::sqrt(omega_on_axis) / 5) - 1);
-  percent_with_scattering = 1 - 5 / std::sqrt(omega_on_axis);
+  if (omega_on_axis > 25) {
+    max_scattering_r_div_a = std::sqrt((std::sqrt(omega_on_axis) / 5) - 1);
+    percent_with_scattering = 100 * (1 - 5 / std::sqrt(omega_on_axis));
+  }
+  else {
+    max_scattering_r_div_a = 0;
+    percent_with_scattering = 0;
+  }
   actual_analysis_points = (steps / stride) + 1;
 }
