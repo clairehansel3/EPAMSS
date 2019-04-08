@@ -205,9 +205,9 @@ Parameters::Parameters(const char* input_path, boost::mpi::communicator& world)
   auto dict = inputToDict(*input);
 
   EPAMSS_READ_PARAMETER(dict, maximum_ion_density);
+  EPAMSS_READ_PARAMETER(dict, maximum_electron_density);
   EPAMSS_READ_PARAMETER(dict, plasma_length);
   EPAMSS_READ_PARAMETER(dict, beam_energy);
-  EPAMSS_READ_PARAMETER(dict, electron_linear_density);
   EPAMSS_READ_PARAMETER(dict, bennett_radius);
   EPAMSS_READ_PARAMETER(dict, interaction_radius);
   EPAMSS_READ_PARAMETER(dict, integration_tolerance);
@@ -259,9 +259,9 @@ void Parameters::writeOutputFile(double seconds)
     file.exceptions(file.failbit | file.badbit);
     file.open(output_filename);
     EPAMSS_WRITE(file, maximum_ion_density);
+    EPAMSS_WRITE(file, maximum_electron_density);
     EPAMSS_WRITE(file, plasma_length);
     EPAMSS_WRITE(file, beam_energy);
-    EPAMSS_WRITE(file, electron_linear_density);
     EPAMSS_WRITE(file, bennett_radius);
     EPAMSS_WRITE(file, interaction_radius);
     EPAMSS_WRITE(file, integration_tolerance);
@@ -281,6 +281,7 @@ void Parameters::writeOutputFile(double seconds)
     file << "output_phase_space = " << (output_phase_space ? "true" : "false")
       << '\n';
     EPAMSS_WRITE(file, ion_linear_density);
+    EPAMSS_WRITE(file, electron_linear_density);
     EPAMSS_WRITE(file, gamma);
     EPAMSS_WRITE(file, alpha);
     EPAMSS_WRITE(file, lambda);
@@ -317,6 +318,8 @@ void Parameters::computeDependentParameters(int processes)
   constexpr double classical_electron_radius = 2.8179403227E-15;
   ion_linear_density = boost::math::constants::pi<double>() * bennett_radius *
     bennett_radius * maximum_ion_density;
+  electron_linear_density = boost::math::constants::pi<double>() * bennett_radius *
+    bennett_radius * maximum_electron_density;
   gamma = beam_energy * 1000 / electron_rest_energy_mev;
   alpha = 2 * boost::math::constants::pi<double>() * classical_electron_radius * ion_atomic_number *
     maximum_ion_density / gamma;

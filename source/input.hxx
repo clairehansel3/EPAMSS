@@ -28,9 +28,9 @@ public:
 
   // specified in input
   double maximum_ion_density;               // [m^-3]
+  double maximum_electron_density;
   double plasma_length;                     // [m]
   double beam_energy;                       // [GeV]
-  double electron_linear_density;           // [m^-1]
   double bennett_radius;                    // [m]
   double interaction_radius;                // [m]
   double integration_tolerance;
@@ -51,6 +51,7 @@ public:
 
   // computed from other parameters
   double ion_linear_density;
+  double electron_linear_density;
   double gamma;
   double alpha;
   double lambda;

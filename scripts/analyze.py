@@ -29,13 +29,14 @@ def getOutputDict(output_filename):
     """
     parameter_types = {
         'maximum_ion_density': float,
+        'maximum_electron_density': float,
         'plasma_length': float,
         'beam_energy': float,
-        'electron_linear_density': float,
         'bennett_radius': float,
         'interaction_radius': float,
         'integration_tolerance': float,
         'vartheta_cutoff': float,
+        'unperturbed_plasma_density': float,
         'ion_atomic_number': int,
         'minimum_steps_per_betatron_period': int,
         'particles_target': int,
@@ -49,16 +50,20 @@ def getOutputDict(output_filename):
         'phase_space_filename': str,
         'output_phase_space': bool,
         'ion_linear_density': float,
+        'electron_linear_density': float,
         'gamma': float,
         'alpha': float,
+        'lambda': float,
+        'betatron_frequency': float,
+        'betatron_period': float,
         'step_size': float,
         'cross_section': float,
         'minimum_angle': float,
-        'betatron_frequency': float,
-        'betatron_period': float,
         'max_scattering_r_div_a': float,
         'percent_with_scattering': float,
         'omega_on_axis': float,
+        'sigma_dist': float,
+        'sigma': float,
         'steps': int,
         'stride': int,
         'actual_particles': int,
@@ -145,7 +150,9 @@ def getPhaseSpace(output_dict):
         )
         particle_start = i * output_dict['particles_per_process']
         particle_end = (i + 1) * output_dict['particles_per_process']
+        print('i = ', i, ', transposing')
         phase_space[:, :, particle_start:particle_end, :] = np.transpose(raw_data, (0, 3, 2, 1))
+        print('done')
     return phase_space
 
 def get2DEmittances(covariance_matrix):
@@ -232,9 +239,9 @@ def plot4DEmittanceGrowth(output_dict, z, emittance_4d, smoothing_on, window_siz
     ns_emit = np.copy(emittance_4d[0, :])
     s_emit = np.copy(emittance_4d[1, :])
     z2 = np.copy(z)
-    avg_emit = np.mean(ns_emit)
-    ns_emit /= avg_emit
-    s_emit /= avg_emit
+    #avg_emit = np.mean(ns_emit)
+    #ns_emit /= avg_emit
+    #s_emit /= avg_emit
     if smoothing_on:
         ns_emit = scipy.signal.savgol_filter(ns_emit, window_size, order)
         s_emit = scipy.signal.savgol_filter(s_emit, window_size, order)
@@ -248,7 +255,7 @@ def plot4DEmittanceGrowth(output_dict, z, emittance_4d, smoothing_on, window_siz
     plt.plot(k_beta * z2, s_emit, label='scattering', color='red')
     plt.xlim(0, k_beta * output_dict['plasma_length'])
     plt.xlabel(r'$k_{\beta} z$ [unitless]')
-    plt.ylabel(r'Normalized $\epsilon_{4D}(z)$ [unitless]')
+    plt.ylabel(r'Normalized $\epsilon_{4D}(z)$ [?]')
     plt.legend()
     if smoothing_on:
         plt.savefig('results/emit_4d_window_{}_order_{}.png'.format(window_size, order))
@@ -264,11 +271,11 @@ def plot2DEmittanceGrowth(output_dict, z, emittances_2d, smoothing_on, window_si
     s_x_emit = np.copy(emittances_2d[1, 0, :])
     s_y_emit = np.copy(emittances_2d[1, 1, :])
     z2 = np.copy(z)
-    avg_emit = np.mean(np.concatenate((ns_x_emit, ns_y_emit)))
-    ns_x_emit /= avg_emit
-    ns_y_emit /= avg_emit
-    s_x_emit /= avg_emit
-    s_y_emit /= avg_emit
+    #avg_emit = np.mean(np.concatenate((ns_x_emit, ns_y_emit)))
+    #ns_x_emit /= avg_emit
+    #ns_y_emit /= avg_emit
+    #s_x_emit /= avg_emit
+    #s_y_emit /= avg_emit
     if smoothing_on:
         ns_x_emit = scipy.signal.savgol_filter(ns_x_emit, window_size, order)
         ns_y_emit = scipy.signal.savgol_filter(ns_y_emit, window_size, order)
@@ -288,7 +295,7 @@ def plot2DEmittanceGrowth(output_dict, z, emittances_2d, smoothing_on, window_si
     plt.plot(k_beta * z, s_y_emit, label='y (scattering)', color='orange')
     plt.xlim(0, k_beta * output_dict['plasma_length'])
     plt.xlabel(r'$k_{\beta} z$ [unitless]')
-    plt.ylabel(r'Normalized $\epsilon_{2D}(z)$ [unitless]')
+    plt.ylabel(r'$\epsilon_{2D}(z)$ [m]')
     plt.legend()
     if smoothing_on:
         plt.savefig('results/emit_2d_window_{}_order_{}.png'.format(window_size, order))
@@ -299,13 +306,13 @@ def plot2DEmittanceGrowth(output_dict, z, emittances_2d, smoothing_on, window_si
 def generate2DEmittanceGrowthRates(z, emittances_2d):
     s_x_emit = np.copy(emittances_2d[1, 0, :])
     s_y_emit = np.copy(emittances_2d[1, 1, :])
-    s_x_emit /= s_x_emit[0]
-    s_y_emit /= s_y_emit[0]
+    #s_x_emit /= s_x_emit[0]
+    #s_y_emit /= s_y_emit[0]
     slope_x, intercept_x, r_value_x, p_value_x, std_err_x = scipy.stats.linregress(z, s_x_emit - 1);
     slope_y, intercept_y, r_value_y, p_value_y, std_err_y = scipy.stats.linregress(z, s_y_emit - 1);
     with open('results/growth_rate.txt', 'w') as f:
-        f.write('g_x = {} +/- {} [%/m]\n'.format(100 * slope_x, 100 * std_err_x))
-        f.write('g_y = {} +/- {} [%/m]\n'.format(100 * slope_y, 100 * std_err_y))
+        f.write('g_x = {} +/- {}\n'.format(slope_x, std_err_x))
+        f.write('g_y = {} +/- {}\n'.format(slope_y, std_err_y))
 
 def analyze():
     output_dict = getOutputDict('data/output')
