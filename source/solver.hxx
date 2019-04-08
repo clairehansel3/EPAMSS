@@ -26,13 +26,13 @@ struct Particle {
 class Scattering;
 class Statistics;
 
-void initializeBeam(Particle* beam, std::size_t particles,
-  double bennett_radius, double alpha);
+void initializeBeam(Particle* beam, std::size_t particles, double sigma,
+  double bennett_radius, double sigma_dist);
 
 void solve(Particle* beam, Statistics* statistics, Scattering& scattering,
   std::ofstream* phase_space_file, std::size_t particles, std::size_t steps,
   std::size_t stride, double bennett_radius, double step_size, double alpha,
-  double maximum_ion_density, double cross_section, double minimum_angle,
-  bool enable_scattering, bool print_progress);
+  double lambda, double maximum_ion_density, double cross_section,
+  double minimum_angle, bool enable_scattering, bool print_progress);
 
 #endif

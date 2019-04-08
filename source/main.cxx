@@ -67,8 +67,8 @@ static void runComputeProcess(boost::mpi::communicator& world, Parameters& p)
 
   // initialize beam
   auto beam = std::make_unique<Particle[]>(p.particles_per_process);
-  initializeBeam(beam.get(), p.particles_per_process, p.bennett_radius,
-    p.alpha);
+  initializeBeam(beam.get(), p.particles_per_process, p.sigma,
+    p.bennett_radius, p.sigma_dist);
 
   // open phase space file
   std::ofstream phase_space_file;
@@ -87,7 +87,7 @@ static void runComputeProcess(boost::mpi::communicator& world, Parameters& p)
     auto statistics = std::make_unique<Statistics[]>(p.actual_analysis_points);
     solve(beam_copy.get(), statistics.get(), scattering, phase_space_file_ptr,
       p.particles_per_process, p.steps, p.stride, p.bennett_radius,
-      p.step_size, p.alpha, p.maximum_ion_density, p.cross_section,
+      p.step_size, p.alpha, p.lambda, p.maximum_ion_density, p.cross_section,
       p.minimum_angle, false, world.rank() == 1);
     world.send(0, 1, reinterpret_cast<char*>(statistics.get()),
        sizeof(Statistics) * p.actual_analysis_points);
@@ -98,8 +98,8 @@ static void runComputeProcess(boost::mpi::communicator& world, Parameters& p)
     auto statistics = std::make_unique<Statistics[]>(p.actual_analysis_points);
     solve(beam.get(), statistics.get(), scattering, phase_space_file_ptr,
       p.particles_per_process, p.steps, p.stride, p.bennett_radius,
-      p.step_size, p.alpha, p.maximum_ion_density, p.cross_section,
-      p.minimum_angle, true, world.rank() == 1);
+      p.step_size, p.alpha, p.lambda, p.maximum_ion_density, p.cross_section,
+      p.minimum_angle, true, world.rank() == 1); // NOTE: scattering off
     world.send(0, 1, reinterpret_cast<char*>(statistics.get()),
        sizeof(Statistics) * p.actual_analysis_points);
   }

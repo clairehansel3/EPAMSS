@@ -212,6 +212,7 @@ Parameters::Parameters(const char* input_path, boost::mpi::communicator& world)
   EPAMSS_READ_PARAMETER(dict, interaction_radius);
   EPAMSS_READ_PARAMETER(dict, integration_tolerance);
   EPAMSS_READ_PARAMETER(dict, vartheta_cutoff);
+  EPAMSS_READ_PARAMETER(dict, unperturbed_plasma_density);
   EPAMSS_READ_PARAMETER(dict, ion_atomic_number);
   EPAMSS_READ_PARAMETER(dict, minimum_steps_per_betatron_period);
   EPAMSS_READ_PARAMETER(dict, particles_target);
@@ -265,6 +266,7 @@ void Parameters::writeOutputFile(double seconds)
     EPAMSS_WRITE(file, interaction_radius);
     EPAMSS_WRITE(file, integration_tolerance);
     EPAMSS_WRITE(file, vartheta_cutoff);
+    EPAMSS_WRITE(file, unperturbed_plasma_density);
     EPAMSS_WRITE(file, ion_atomic_number);
     EPAMSS_WRITE(file, minimum_steps_per_betatron_period);
     EPAMSS_WRITE(file, particles_target);
@@ -281,14 +283,17 @@ void Parameters::writeOutputFile(double seconds)
     EPAMSS_WRITE(file, ion_linear_density);
     EPAMSS_WRITE(file, gamma);
     EPAMSS_WRITE(file, alpha);
+    EPAMSS_WRITE(file, lambda);
+    EPAMSS_WRITE(file, betatron_frequency);
+    EPAMSS_WRITE(file, betatron_period);
     EPAMSS_WRITE(file, step_size);
     EPAMSS_WRITE(file, cross_section);
     EPAMSS_WRITE(file, minimum_angle);
-    EPAMSS_WRITE(file, betatron_frequency);
-    EPAMSS_WRITE(file, betatron_period);
     EPAMSS_WRITE(file, max_scattering_r_div_a);
     EPAMSS_WRITE(file, percent_with_scattering);
     EPAMSS_WRITE(file, omega_on_axis);
+    EPAMSS_WRITE(file, sigma_dist);
+    EPAMSS_WRITE(file, sigma);
     EPAMSS_WRITE(file, steps);
     EPAMSS_WRITE(file, stride);
     EPAMSS_WRITE(file, actual_particles);
@@ -313,12 +318,17 @@ void Parameters::computeDependentParameters(int processes)
   ion_linear_density = boost::math::constants::pi<double>() * bennett_radius *
     bennett_radius * maximum_ion_density;
   gamma = beam_energy * 1000 / electron_rest_energy_mev;
-  alpha = 2 * classical_electron_radius * (ion_atomic_number *
-    ion_linear_density - electron_linear_density / (gamma * gamma)) / gamma;
+  alpha = 2 * boost::math::constants::pi<double>() * classical_electron_radius * ion_atomic_number *
+    maximum_ion_density / gamma;
+  lambda = unperturbed_plasma_density / maximum_ion_density;
+  betatron_frequency = std::sqrt(alpha * (1 + lambda));
+  betatron_period = 2 * boost::math::constants::pi<double>() /
+    betatron_frequency;
   steps = static_cast<std::size_t>(std::ceil(
-    minimum_steps_per_betatron_period * plasma_length * std::sqrt(alpha) /
-    (2 * boost::math::constants::pi<double>() * bennett_radius)
+    minimum_steps_per_betatron_period * plasma_length * betatron_frequency
+    / (2 * boost::math::constants::pi<double>())
   ));
+
   stride = steps / analysis_points_target;
   step_size = plasma_length / steps;
   cross_section = boost::math::constants::pi<double>() *
@@ -329,10 +339,9 @@ void Parameters::computeDependentParameters(int processes)
   actual_particles = particles_target + compute_processes - particles_target % compute_processes;
   particles_per_process = actual_particles / compute_processes;
   assert(actual_particles % compute_processes == 0);
-  betatron_frequency = std::sqrt(alpha) / bennett_radius;
-  betatron_period = 2 * boost::math::constants::pi<double>() /
-    betatron_frequency;
   omega_on_axis = maximum_ion_density * cross_section * step_size;
+  sigma_dist = (bennett_radius / 2) * std::sqrt(alpha);
+  sigma = bennett_radius / (2 * std::sqrt(lambda));
   if (omega_on_axis > 25) {
     max_scattering_r_div_a = std::sqrt((std::sqrt(omega_on_axis) / 5) - 1);
     percent_with_scattering = 100 * (1 - 5 / std::sqrt(omega_on_axis));

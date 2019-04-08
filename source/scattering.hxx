@@ -30,7 +30,7 @@ public:
 
  void scatter(double x, double y, double& vx, double& vy, double bennett_radius,
    double maximum_ion_density, double cross_section, double step_size,
-   double minimum_angle);
+   double minimum_angle, double lambda);
 
 private:
 

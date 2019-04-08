@@ -29,11 +29,11 @@ Scattering::Scattering(unsigned max_order, unsigned max_integration_depth,
 
 void Scattering::scatter(double x, double y, double& vx, double& vy,
   double bennett_radius, double maximum_ion_density, double cross_section,
-  double step_size, double minimum_angle)
+  double step_size, double minimum_angle, double lambda)
 {
   double r2 = x * x + y * y;
   double temp = 1 + (r2 / (bennett_radius * bennett_radius));
-  double density = maximum_ion_density / (temp * temp);
+  double density = maximum_ion_density * (lambda + 1 / (temp * temp));
   double omega = density * cross_section * step_size;
   if (omega > 25) {
     double constant = -std::exp(-2 * (1 -

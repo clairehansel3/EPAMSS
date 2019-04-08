@@ -35,6 +35,7 @@ public:
   double interaction_radius;                // [m]
   double integration_tolerance;
   double vartheta_cutoff;
+  double unperturbed_plasma_density;
   std::size_t ion_atomic_number;
   std::size_t minimum_steps_per_betatron_period;
   std::size_t particles_target;
@@ -52,14 +53,17 @@ public:
   double ion_linear_density;
   double gamma;
   double alpha;
+  double lambda;
+  double betatron_frequency;
+  double betatron_period;
   double step_size;
   double cross_section;
   double minimum_angle;
-  double betatron_frequency;
-  double betatron_period;
   double max_scattering_r_div_a;
   double percent_with_scattering;
   double omega_on_axis;
+  double sigma_dist;
+  double sigma;
   std::size_t steps;
   std::size_t stride;
   std::size_t actual_particles;
