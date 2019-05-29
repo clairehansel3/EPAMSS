@@ -63,12 +63,13 @@ static void runComputeProcess(boost::mpi::communicator& world, Parameters& p)
   // initialize scattering
   Scattering scattering{p.max_order, p.max_integration_depth,
     p.integration_tolerance, p.spline_points, p.vartheta_cutoff,
-    world.rank() == 1};
+    p.omega_off_axis, p.gamma_minimum_angle, world.rank() == 1};
 
   // initialize beam
   auto beam = std::make_unique<Particle[]>(p.particles_per_process);
-  initializeBeam(beam.get(), p.particles_per_process, p.sigma,
-    p.bennett_radius, p.sigma_dist);
+  initializeBeam(beam.get(), p.particles_per_process, p.bennett_radius_initial,
+    p.gamma_initial, p.sigma_r_initial, p.sigma_r_prime_initial,
+    p.modified_bennett);
 
   // open phase space file
   std::ofstream phase_space_file;
@@ -86,9 +87,9 @@ static void runComputeProcess(boost::mpi::communicator& world, Parameters& p)
     std::copy_n(beam.get(), p.particles_per_process, beam_copy.get());
     auto statistics = std::make_unique<Statistics[]>(p.actual_analysis_points);
     solve(beam_copy.get(), statistics.get(), scattering, phase_space_file_ptr,
-      p.particles_per_process, p.steps, p.stride, p.bennett_radius,
-      p.step_size, p.alpha, p.lambda, p.maximum_ion_density, p.cross_section,
-      p.minimum_angle, false, world.rank() == 1);
+      p.particles_per_process, p.steps, p.stride, p.ion_atomic_number,
+      p.step_size, p.bennett_radius_initial, p.rho_ion_initial, p.gamma_initial,
+      p.gamma_prime, p.delta, false, world.rank() == 1);
     world.send(0, 1, reinterpret_cast<char*>(statistics.get()),
        sizeof(Statistics) * p.actual_analysis_points);
   }
@@ -97,9 +98,9 @@ static void runComputeProcess(boost::mpi::communicator& world, Parameters& p)
   {
     auto statistics = std::make_unique<Statistics[]>(p.actual_analysis_points);
     solve(beam.get(), statistics.get(), scattering, phase_space_file_ptr,
-      p.particles_per_process, p.steps, p.stride, p.bennett_radius,
-      p.step_size, p.alpha, p.lambda, p.maximum_ion_density, p.cross_section,
-      p.minimum_angle, true, world.rank() == 1); // NOTE: scattering off
+      p.particles_per_process, p.steps, p.stride, p.ion_atomic_number,
+      p.step_size, p.bennett_radius_initial, p.rho_ion_initial, p.gamma_initial,
+      p.gamma_prime, p.delta, true, world.rank() == 1);
     world.send(0, 1, reinterpret_cast<char*>(statistics.get()),
        sizeof(Statistics) * p.actual_analysis_points);
   }

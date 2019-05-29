@@ -27,15 +27,15 @@ public:
   Parameters(const char* input_path, boost::mpi::communicator& world);
 
   // specified in input
-  double maximum_ion_density;               // [m^-3]
-  double maximum_electron_density;
-  double plasma_length;                     // [m]
-  double beam_energy;                       // [GeV]
-  double bennett_radius;                    // [m]
-  double interaction_radius;                // [m]
+  double rho_ion_initial_si;
+  double plasma_length_si;
+  double beam_energy_initial_gev;
+  double acceleration_gradient_gev_per_m;
+  double bennett_radius_initial_si;
+  double cross_section_radius_si;
+  double unperturbed_plasma_density_si;
   double integration_tolerance;
   double vartheta_cutoff;
-  double unperturbed_plasma_density;
   std::size_t ion_atomic_number;
   std::size_t minimum_steps_per_betatron_period;
   std::size_t particles_target;
@@ -48,28 +48,39 @@ public:
   std::string statistics_filename;
   std::string phase_space_filename;
   bool output_phase_space;
+  bool modified_bennett;
 
   // computed from other parameters
-  double ion_linear_density;
-  double electron_linear_density;
-  double gamma;
-  double alpha;
-  double lambda;
-  double betatron_frequency;
-  double betatron_period;
+  double plasma_frequency_si;
+  double plasma_angular_wavenumber_si;
+  double plasma_skin_depth_si;
+  double rho_ion_initial;
+  double plasma_length;
+  double gamma_initial;
+  double gamma_prime;
+  double bennett_radius_initial;
+  double cross_section_radius;
+  double delta;
+  double gamma_final;
+  double bennett_radius_final;
+  double rho_ion_final;
+  double betatron_frequency_final;
+  double betatron_period_final;
+  double betatron_frequency_final_si;
+  double betatron_period_final_si;
   double step_size;
-  double cross_section;
-  double minimum_angle;
-  double max_scattering_r_div_a;
-  double percent_with_scattering;
-  double omega_on_axis;
-  double sigma_dist;
-  double sigma;
+  double step_size_si;
+  double gamma_minimum_angle;
+  double omega_off_axis;
+  double omega_on_axis_initial;
+  double max_scattering_r_div_a_initial;
+  double sigma_r_initial;
+  double sigma_r_prime_initial;
   std::size_t steps;
   std::size_t stride;
+  std::size_t compute_processes;
   std::size_t actual_particles;
   std::size_t particles_per_process;
-  std::size_t compute_processes;
   std::size_t actual_analysis_points;
 
   void writeOutputFile(double seconds);

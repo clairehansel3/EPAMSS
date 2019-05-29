@@ -1,5 +1,5 @@
 CXX   = mpicxx
-FLAGS = -Wall -Wextra -std=c++17 -Ofast -flto -ffast-math -DNDEBUG #\
+FLAGS = -Wall -Wextra -std=c++17 #-Ofast -flto -ffast-math -DNDEBUG #\
 				-I /u/home/c/claireha/prefix/include
 OBJS  = source/LambertW/LambertW.o source/input.o source/main.o \
 				source/moliere.o source/scattering.o source/solver.o \

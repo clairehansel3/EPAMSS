@@ -26,15 +26,17 @@ public:
 
   Scattering(unsigned max_order, unsigned max_integration_depth,
              double integration_tolerance, unsigned long spline_points,
-             double vartheta_cutoff, bool print_info);
+             double vartheta_cutoff, double omega_off_axis,
+             double gamma_minimum_angle, bool print_info);
 
- void scatter(double x, double y, double& vx, double& vy, double bennett_radius,
-   double maximum_ion_density, double cross_section, double step_size,
-   double minimum_angle, double lambda);
+  void scatter(double x, double& px, double y, double& py, double gamma,
+    double bennett_radius, double rho_ion, double delta);
 
 private:
 
   Moliere m_moliere;
+
+  double m_omega_off_axis, m_gamma_minimum_angle;
 
 };
 

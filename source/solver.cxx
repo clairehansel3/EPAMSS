@@ -21,43 +21,50 @@
 #include <cmath>
 #include <iostream>
 
-void initializeBeam(Particle* beam, std::size_t particles, double sigma,
-  double bennett_radius, double sigma_dist)
+void initializeBeam(Particle* beam, std::size_t particles,
+  double bennett_radius_initial, double gamma_initial, double sigma_r_initial,
+  double sigma_r_prime_initial, bool modified_bennett)
 {
   for (std::size_t particle = 0; particle != particles; ++particle) {
+
+    // sample r using rejection sampling
     double r;
     while (true) {
-      auto test_r = bennett_radius / std::sqrt((1 / randomUniform()) - 1);
-      if (randomUniform() < std::exp(-test_r * test_r / (2 * sigma * sigma))) {
+      auto test_r = bennett_radius_initial / std::sqrt((1 / randomUniform()) - 1);
+      if (!modified_bennett || randomUniform() < std::exp(-test_r * test_r / (2 * sigma_r_initial * sigma_r_initial))) {
         r = test_r;
         break;
       }
     }
+
+    // sample remaining coordinates
     double theta = 2 * boost::math::constants::pi<double>() * randomUniform();
-    double r_prime = randomNormal(0, sigma_dist);
-    double r_theta_prime = randomNormal(0, sigma_dist);
+    double r_prime = randomNormal(0, sigma_r_prime_initial);
+    double r_theta_prime = randomNormal(0, sigma_r_prime_initial);
+
+    // convert to phase space
     beam[particle].x = r * std::cos(theta);
     beam[particle].y = r * std::sin(theta);
-    beam[particle].vx = r_prime * std::cos(theta) - r_theta_prime * std::sin(
-        theta);
-    beam[particle].vy = r_prime * std::sin(theta) + r_theta_prime * std::cos(
-        theta);
+    beam[particle].px = gamma_initial * (r_prime * std::cos(theta) - r_theta_prime * std::sin(theta));
+    beam[particle].py = gamma_initial * (r_prime * std::sin(theta) + r_theta_prime * std::cos(theta));
+
   }
 }
 
+
 void solve(Particle* beam, Statistics* statistics, Scattering& scattering,
   std::ofstream* phase_space_file, std::size_t particles, std::size_t steps,
-  std::size_t stride, double bennett_radius, double step_size, double alpha,
-  double lambda, double maximum_ion_density, double cross_section,
-  double minimum_angle, bool enable_scattering, bool print_progress)
+  std::size_t stride, std::size_t ion_atomic_number, double step_size,
+  double bennett_radius_initial, double rho_ion_initial, double gamma_initial,
+  double gamma_prime, double delta, bool scattering_enabled,
+  bool print_progress)
 {
-  double a2 = bennett_radius * bennett_radius;
 
   int percent = -1;
 
-  for (std::size_t step = 0; step != steps + 1; ++step) {
+  for (std::size_t step; step != steps + 1; ++step) {
 
-    // Print progress
+    // print progress
     if (print_progress) {
       int new_percent = (100 * step) / steps;
       if (percent != new_percent) {
@@ -66,58 +73,64 @@ void solve(Particle* beam, Statistics* statistics, Scattering& scattering,
       }
     }
 
-    // If the following condition is true, this step is an analysis point and
-    // information about the beam is recorded.
+    // if the step is an analysis step, record data
     if (step % stride == 0) {
       if (phase_space_file) {
-        // Write particles to phase space file.
+        //write particles to phase space file.
         phase_space_file->write(reinterpret_cast<char*>(beam),
           sizeof(Particle) * particles);
       }
-      // Compute statistics
+      // compute statistics
       statistics[step / stride] = Statistics(beam, particles);
     }
 
-    // track each particle
+    // compute z dependent parameters
+    double gamma_over_gamma_initial = 1 + (gamma_prime * step_size * step / gamma_initial);
+    double gamma = gamma_initial * gamma_over_gamma_initial;
+    double bennett_radius = bennett_radius_initial * std::pow(gamma_over_gamma_initial, -0.25);
+    double rho_ion = rho_ion_initial * std::sqrt(gamma_over_gamma_initial);
+    double gamma_over_gamma_initial_next = 1 + (gamma_prime * step_size * (step + 1) / gamma_initial);
+    double gamma_next = gamma_initial * gamma_over_gamma_initial_next;
+    double bennett_radius_next = bennett_radius_initial * std::pow(gamma_over_gamma_initial_next, -0.25);
+    double rho_ion_next = rho_ion_initial * std::sqrt(gamma_over_gamma_initial_next);
+
     for (std::size_t particle = 0; particle != particles; ++particle) {
 
-      // get old positions and velocities
+      // get old phase space coordinates
       double x_old  = beam[particle].x;
-      double vx_old = beam[particle].vx;
+      double px_old = beam[particle].px;
       double y_old  = beam[particle].y;
-      double vy_old = beam[particle].vy;
-      double r2_old = x_old * x_old + y_old * y_old;
+      double py_old = beam[particle].py;
 
       // compute force
-      double value = -alpha * (lambda + 1 / (1 + r2_old / a2));
-      double fx_old = x_old * value;
-      double fy_old = y_old * value;
+      double r2_old = x_old * x_old + y_old * y_old;
+      double value_old = -0.5 * ion_atomic_number * (delta + rho_ion / (1 + r2_old / (bennett_radius * bennett_radius)));
+      double fx_old = value_old * x_old;
+      double fy_old = value_old * x_old;
 
-      // update positions
-      double x_new = x_old + step_size * (vx_old + 0.5 * fx_old * step_size);
-      double y_new = y_old + step_size * (vy_old + 0.5 * fy_old * step_size);
+      // compute new positions
+      double x_new = x_old + step_size * (px_old / gamma) + 0.5 * step_size * step_size * fx_old;
+      double y_new = y_old + step_size * (py_old / gamma) + 0.5 * step_size * step_size * fy_old;
+
+      // compute new force
       double r2_new = x_new * x_new + y_new * y_new;
+      double value_new = -0.5 * ion_atomic_number * (delta + rho_ion_next / (1 + r2_new / (bennett_radius_next * bennett_radius_next)));
+      double fx_new = value_new * x_new;
+      double fy_new = value_new * x_new;
 
-      // compute new forces
-      value = -alpha * (lambda + 1 / (1 + r2_new / a2));
-      double fx_new = x_new * value;
-      double fy_new = y_new * value;
-
-      // compute new velocities
-      double vx_new = vx_old + 0.5 * (fx_old + fx_new) * step_size;
-      double vy_new = vy_old + 0.5 * (fy_old + fy_new) * step_size;
+      // compute new momenta
+      double px_new = px_old + 0.5 * step_size * (fx_old + fx_new);
+      double py_new = py_old + 0.5 * step_size * (fy_old + fy_new);
 
       // compute scattering
-      if (enable_scattering)
-        scattering.scatter(x_new, y_new, vx_new, vy_new,
-          bennett_radius, maximum_ion_density, cross_section, step_size,
-          minimum_angle, lambda);
+      if (scattering_enabled)
+        scattering.scatter(x_new, px_new, y_new, py_new, gamma_next, bennett_radius_next, rho_ion_next, delta);
 
       // write result to beam
       beam[particle].x = x_new;
-      beam[particle].vx = vx_new;
+      beam[particle].px = px_new;
       beam[particle].y = y_new;
-      beam[particle].vy = vy_new;
+      beam[particle].py = py_new;
     }
   }
 }

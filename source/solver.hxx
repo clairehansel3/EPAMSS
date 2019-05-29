@@ -20,19 +20,21 @@
 #include <fstream>
 
 struct Particle {
-  double x, vx, y, vy;
+  double x, px, y, py;
 };
 
 class Scattering;
 class Statistics;
 
-void initializeBeam(Particle* beam, std::size_t particles, double sigma,
-  double bennett_radius, double sigma_dist);
+void initializeBeam(Particle* beam, std::size_t particles,
+  double bennett_radius_initial, double gamma_initial, double sigma_r_initial,
+  double sigma_r_prime_initial, bool modified_bennett);
 
 void solve(Particle* beam, Statistics* statistics, Scattering& scattering,
   std::ofstream* phase_space_file, std::size_t particles, std::size_t steps,
-  std::size_t stride, double bennett_radius, double step_size, double alpha,
-  double lambda, double maximum_ion_density, double cross_section,
-  double minimum_angle, bool enable_scattering, bool print_progress);
+  std::size_t stride, std::size_t ion_atomic_number, double step_size,
+  double bennett_radius_initial, double rho_ion_initial, double gamma_initial,
+  double gamma_prime, double delta, bool scattering_enabled,
+  bool print_progress);
 
 #endif

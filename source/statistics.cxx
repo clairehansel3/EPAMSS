@@ -30,9 +30,9 @@ Statistics::Statistics(Particle* beam, std::size_t particles)
   // compute means
   for (std::size_t particle = 0; particle != particles; ++particle) {
     m_means[0] += beam[particle].x;
-    m_means[1] += beam[particle].vx;
+    m_means[1] += beam[particle].px;
     m_means[2] += beam[particle].y;
-    m_means[3] += beam[particle].vy;
+    m_means[3] += beam[particle].py;
   }
   m_means[0] /= particles;
   m_means[1] /= particles;
@@ -42,19 +42,19 @@ Statistics::Statistics(Particle* beam, std::size_t particles)
   // compute sigma matrix
   for (std::size_t particle = 0; particle != particles; ++particle) {
     double delta_x  = beam[particle].x  - m_means[0];
-    double delta_vx = beam[particle].vx - m_means[1];
+    double delta_px = beam[particle].px - m_means[1];
     double delta_y  = beam[particle].y  - m_means[2];
-    double delta_vy = beam[particle].vy - m_means[3];
+    double delta_py = beam[particle].py - m_means[3];
     m_covariance_matrix[0] += delta_x * delta_x;
-    m_covariance_matrix[1] += delta_x * delta_vx;
+    m_covariance_matrix[1] += delta_x * delta_px;
     m_covariance_matrix[2] += delta_x * delta_y;
-    m_covariance_matrix[3] += delta_x * delta_vy;
-    m_covariance_matrix[4] += delta_vx * delta_vx;
-    m_covariance_matrix[5] += delta_vx * delta_y;
-    m_covariance_matrix[6] += delta_vx * delta_vy;
+    m_covariance_matrix[3] += delta_x * delta_py;
+    m_covariance_matrix[4] += delta_px * delta_px;
+    m_covariance_matrix[5] += delta_px * delta_y;
+    m_covariance_matrix[6] += delta_px * delta_py;
     m_covariance_matrix[7] += delta_y * delta_y;
-    m_covariance_matrix[8] += delta_y * delta_vy;
-    m_covariance_matrix[9] += delta_vy * delta_vy;
+    m_covariance_matrix[8] += delta_y * delta_py;
+    m_covariance_matrix[9] += delta_py * delta_py;
   }
   m_covariance_matrix[0] /= particles;
   m_covariance_matrix[1] /= particles;

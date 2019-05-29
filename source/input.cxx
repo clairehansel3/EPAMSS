@@ -23,6 +23,7 @@
 #include <ctime>
 #include <fstream>
 #include <map>
+#include <limits>
 #include <optional>
 #include <stdexcept>
 #include <string>
@@ -204,20 +205,22 @@ Parameters::Parameters(const char* input_path, boost::mpi::communicator& world)
     throw std::runtime_error("unable to open input");
   auto dict = inputToDict(*input);
 
-  EPAMSS_READ_PARAMETER(dict, maximum_ion_density);
-  EPAMSS_READ_PARAMETER(dict, maximum_electron_density);
-  EPAMSS_READ_PARAMETER(dict, plasma_length);
-  EPAMSS_READ_PARAMETER(dict, beam_energy);
-  EPAMSS_READ_PARAMETER(dict, bennett_radius);
-  EPAMSS_READ_PARAMETER(dict, interaction_radius);
+  EPAMSS_READ_PARAMETER(dict, rho_ion_initial_si);
+  EPAMSS_READ_PARAMETER(dict, plasma_length_si);
+  EPAMSS_READ_PARAMETER(dict, beam_energy_initial_gev);
+  EPAMSS_READ_PARAMETER(dict, acceleration_gradient_gev_per_m);
+  EPAMSS_READ_PARAMETER(dict, bennett_radius_initial_si);
+  EPAMSS_READ_PARAMETER(dict, cross_section_radius_si);
+  EPAMSS_READ_PARAMETER(dict, unperturbed_plasma_density_si);
   EPAMSS_READ_PARAMETER(dict, integration_tolerance);
   EPAMSS_READ_PARAMETER(dict, vartheta_cutoff);
-  EPAMSS_READ_PARAMETER(dict, unperturbed_plasma_density);
   EPAMSS_READ_PARAMETER(dict, ion_atomic_number);
   EPAMSS_READ_PARAMETER(dict, minimum_steps_per_betatron_period);
   EPAMSS_READ_PARAMETER(dict, particles_target);
   EPAMSS_READ_PARAMETER(dict, analysis_points_target);
+  EPAMSS_READ_PARAMETER(dict, analysis_points_target);
   EPAMSS_READ_PARAMETER(dict, spline_points);
+
   try {
     std::string seed_str;
     get_from_dict(dict, "seed", seed_str);
@@ -238,6 +241,7 @@ Parameters::Parameters(const char* input_path, boost::mpi::communicator& world)
   EPAMSS_READ_PARAMETER(dict, statistics_filename);
   EPAMSS_READ_PARAMETER(dict, phase_space_filename);
   EPAMSS_READ_PARAMETER(dict, output_phase_space);
+  EPAMSS_READ_PARAMETER(dict, modified_bennett);
 
   if (world.rank() == 0) {
     for (auto pair : dict) {
@@ -250,7 +254,8 @@ Parameters::Parameters(const char* input_path, boost::mpi::communicator& world)
   computeDependentParameters(world.size());
 }
 
-#define EPAMSS_WRITE(file, param) file << #param " = " << param << '\n'
+#define EPAMSS_WRITE(file, param, units) file << #param " = " << param << " " units "\n"
+#define EPAMSS_WRITE_BOOL(file, param) file << #param " = " << (param ? "true\n" : "false\n")
 
 void Parameters::writeOutputFile(double seconds)
 {
@@ -258,49 +263,62 @@ void Parameters::writeOutputFile(double seconds)
     std::ofstream file;
     file.exceptions(file.failbit | file.badbit);
     file.open(output_filename);
-    EPAMSS_WRITE(file, maximum_ion_density);
-    EPAMSS_WRITE(file, maximum_electron_density);
-    EPAMSS_WRITE(file, plasma_length);
-    EPAMSS_WRITE(file, beam_energy);
-    EPAMSS_WRITE(file, bennett_radius);
-    EPAMSS_WRITE(file, interaction_radius);
-    EPAMSS_WRITE(file, integration_tolerance);
-    EPAMSS_WRITE(file, vartheta_cutoff);
-    EPAMSS_WRITE(file, unperturbed_plasma_density);
-    EPAMSS_WRITE(file, ion_atomic_number);
-    EPAMSS_WRITE(file, minimum_steps_per_betatron_period);
-    EPAMSS_WRITE(file, particles_target);
-    EPAMSS_WRITE(file, analysis_points_target);
-    EPAMSS_WRITE(file, spline_points);
-    EPAMSS_WRITE(file, seed);
-    EPAMSS_WRITE(file, max_order);
-    EPAMSS_WRITE(file, max_integration_depth);
-    EPAMSS_WRITE(file, output_filename);
-    EPAMSS_WRITE(file, statistics_filename);
-    EPAMSS_WRITE(file, phase_space_filename);
-    file << "output_phase_space = " << (output_phase_space ? "true" : "false")
-      << '\n';
-    EPAMSS_WRITE(file, ion_linear_density);
-    EPAMSS_WRITE(file, electron_linear_density);
-    EPAMSS_WRITE(file, gamma);
-    EPAMSS_WRITE(file, alpha);
-    EPAMSS_WRITE(file, lambda);
-    EPAMSS_WRITE(file, betatron_frequency);
-    EPAMSS_WRITE(file, betatron_period);
-    EPAMSS_WRITE(file, step_size);
-    EPAMSS_WRITE(file, cross_section);
-    EPAMSS_WRITE(file, minimum_angle);
-    EPAMSS_WRITE(file, max_scattering_r_div_a);
-    EPAMSS_WRITE(file, percent_with_scattering);
-    EPAMSS_WRITE(file, omega_on_axis);
-    EPAMSS_WRITE(file, sigma_dist);
-    EPAMSS_WRITE(file, sigma);
-    EPAMSS_WRITE(file, steps);
-    EPAMSS_WRITE(file, stride);
-    EPAMSS_WRITE(file, actual_particles);
-    EPAMSS_WRITE(file, particles_per_process);
-    EPAMSS_WRITE(file, compute_processes);
-    EPAMSS_WRITE(file, actual_analysis_points);
+
+    EPAMSS_WRITE(file, rho_ion_initial_si, "m^-3");
+    EPAMSS_WRITE(file, plasma_length_si, "m");
+    EPAMSS_WRITE(file, beam_energy_initial_gev, "GeV");
+    EPAMSS_WRITE(file, acceleration_gradient_gev_per_m, "GeV/m");
+    EPAMSS_WRITE(file, bennett_radius_initial_si, "m");
+    EPAMSS_WRITE(file, cross_section_radius_si, "m");
+    EPAMSS_WRITE(file, unperturbed_plasma_density_si, "m^-3");
+    EPAMSS_WRITE(file, integration_tolerance, "");
+    EPAMSS_WRITE(file, vartheta_cutoff, "");
+    EPAMSS_WRITE(file, ion_atomic_number, "");
+    EPAMSS_WRITE(file, minimum_steps_per_betatron_period, "");
+    EPAMSS_WRITE(file, particles_target, "");
+    EPAMSS_WRITE(file, analysis_points_target, "");
+    EPAMSS_WRITE(file, spline_points, "");
+    EPAMSS_WRITE(file, seed, "");
+    EPAMSS_WRITE(file, max_order, "");
+    EPAMSS_WRITE(file, max_integration_depth, "");
+    EPAMSS_WRITE(file, output_filename, "");
+    EPAMSS_WRITE(file, statistics_filename, "");
+    EPAMSS_WRITE(file, phase_space_filename, "");
+    EPAMSS_WRITE_BOOL(file, output_phase_space);
+    EPAMSS_WRITE_BOOL(file, modified_bennett);
+
+    EPAMSS_WRITE(file, plasma_frequency_si, "s^-1");
+    EPAMSS_WRITE(file, plasma_angular_wavenumber_si, "m^-1");
+    EPAMSS_WRITE(file, plasma_skin_depth_si, "m");
+    EPAMSS_WRITE(file, rho_ion_initial, "");
+    EPAMSS_WRITE(file, plasma_length, "");
+    EPAMSS_WRITE(file, gamma_initial, "");
+    EPAMSS_WRITE(file, gamma_prime, "");
+    EPAMSS_WRITE(file, bennett_radius_initial, "");
+    EPAMSS_WRITE(file, cross_section_radius, "");
+    EPAMSS_WRITE(file, delta, "");
+    EPAMSS_WRITE(file, gamma_final, "");
+    EPAMSS_WRITE(file, bennett_radius_final, "");
+    EPAMSS_WRITE(file, rho_ion_final, "");
+    EPAMSS_WRITE(file, betatron_frequency_final, "");
+    EPAMSS_WRITE(file, betatron_period_final, "");
+    EPAMSS_WRITE(file, betatron_frequency_final_si, "m^-1");
+    EPAMSS_WRITE(file, betatron_period_final_si, "m");
+    EPAMSS_WRITE(file, step_size, "");
+    EPAMSS_WRITE(file, step_size_si, "m");
+    EPAMSS_WRITE(file, gamma_minimum_angle, "");
+    EPAMSS_WRITE(file, omega_off_axis, "");
+    EPAMSS_WRITE(file, omega_on_axis_initial, "");
+    EPAMSS_WRITE(file, max_scattering_r_div_a_initial, "");
+    EPAMSS_WRITE(file, sigma_r_initial, "");
+    EPAMSS_WRITE(file, sigma_r_prime_initial, "");
+    EPAMSS_WRITE(file, steps, "");
+    EPAMSS_WRITE(file, stride, "");
+    EPAMSS_WRITE(file, compute_processes, "");
+    EPAMSS_WRITE(file, actual_particles, "");
+    EPAMSS_WRITE(file, particles_per_process, "");
+    EPAMSS_WRITE(file, actual_analysis_points, "");
+
     file << "seconds_elapsed = " << seconds << '\n';
     file << "minutes_elapsed = " << (seconds / 60) << '\n';
     file << "hours_elapsed = " << (seconds / (60 * 60)) << '\n';
@@ -314,44 +332,54 @@ void Parameters::writeOutputFile(double seconds)
 
 void Parameters::computeDependentParameters(int processes)
 {
+  constexpr double elementary_charge = 1.60217662E-19;
+  constexpr double vacuum_permittivity = 8.8541878128E-12;
+  constexpr double electron_mass = 9.1093837015E-31;
+  constexpr double c_light = 299792458.0;
   constexpr double electron_rest_energy_mev = 0.5109989461;
   constexpr double classical_electron_radius = 2.8179403227E-15;
-  ion_linear_density = boost::math::constants::pi<double>() * bennett_radius *
-    bennett_radius * maximum_ion_density;
-  electron_linear_density = boost::math::constants::pi<double>() * bennett_radius *
-    bennett_radius * maximum_electron_density;
-  gamma = beam_energy * 1000 / electron_rest_energy_mev;
-  alpha = 2 * boost::math::constants::pi<double>() * classical_electron_radius * ion_atomic_number *
-    maximum_ion_density / gamma;
-  lambda = unperturbed_plasma_density / maximum_ion_density;
-  betatron_frequency = std::sqrt(alpha * (1 + lambda));
-  betatron_period = 2 * boost::math::constants::pi<double>() /
-    betatron_frequency;
+  plasma_frequency_si = elementary_charge * std::sqrt(unperturbed_plasma_density_si / (vacuum_permittivity * electron_mass));
+  plasma_angular_wavenumber_si = plasma_frequency_si / c_light;
+  plasma_skin_depth_si = 1 / plasma_angular_wavenumber_si;
+  rho_ion_initial = rho_ion_initial_si / unperturbed_plasma_density_si;
+  plasma_length = plasma_length_si * plasma_angular_wavenumber_si;
+  gamma_initial = beam_energy_initial_gev * 1000 / electron_rest_energy_mev;
+  gamma_prime = plasma_skin_depth_si * acceleration_gradient_gev_per_m * 1000 / electron_rest_energy_mev;
+  bennett_radius_initial = bennett_radius_initial_si * plasma_angular_wavenumber_si;
+  cross_section_radius = cross_section_radius_si * plasma_angular_wavenumber_si;
+  delta = modified_bennett ? 1.0 : 0.0;
+  double gamma_final_over_gamma_initial = 1 + (gamma_prime * plasma_length / gamma_initial);
+  gamma_final = gamma_initial * gamma_final_over_gamma_initial;
+  bennett_radius_final = bennett_radius_initial * std::pow(gamma_final_over_gamma_initial, -0.25);
+  rho_ion_final = rho_ion_initial * std::sqrt(gamma_final_over_gamma_initial);
+  betatron_frequency_final = std::sqrt((ion_atomic_number * (rho_ion_final + delta) / (2 * gamma_final)) - (gamma_prime * gamma_prime / (4 * gamma_final * gamma_final)));
+  betatron_period_final = 2 * boost::math::constants::pi<double>() / betatron_frequency_final;
+  betatron_frequency_final_si = plasma_angular_wavenumber_si * betatron_frequency_final;
+  betatron_period_final_si = plasma_skin_depth_si * betatron_period_final;
   steps = static_cast<std::size_t>(std::ceil(
-    minimum_steps_per_betatron_period * plasma_length * betatron_frequency
+    minimum_steps_per_betatron_period * plasma_length * betatron_frequency_final
     / (2 * boost::math::constants::pi<double>())
   ));
-
   stride = steps / analysis_points_target;
   step_size = plasma_length / steps;
-  cross_section = boost::math::constants::pi<double>() *
-    interaction_radius * interaction_radius;
-  minimum_angle = 2 * ion_atomic_number * classical_electron_radius / (gamma *
-    interaction_radius);
+  step_size_si = step_size * plasma_skin_depth_si;
+  gamma_minimum_angle = 2 * ion_atomic_number * classical_electron_radius / cross_section_radius_si;
+  omega_off_axis = boost::math::constants::pi<double>() * cross_section_radius_si * cross_section_radius_si * step_size_si * unperturbed_plasma_density_si;
+  omega_on_axis_initial = omega_off_axis * (rho_ion_initial + delta);
+  if (omega_on_axis_initial < 25) {
+    max_scattering_r_div_a_initial = 0;
+  }
+  else if (delta * omega_off_axis > 25) {
+    max_scattering_r_div_a_initial = std::numeric_limits<double>::infinity();
+  }
+  else {
+    max_scattering_r_div_a_initial = std::sqrt(std::sqrt(rho_ion_initial * omega_off_axis / (25 - delta * omega_off_axis)) - 1);
+  }
+  sigma_r_initial = 0.5 * bennett_radius_initial * std::sqrt(rho_ion_initial);
+  sigma_r_prime_initial = std::sqrt(boost::math::constants::pi<double>() * classical_electron_radius * bennett_radius_initial_si * bennett_radius_initial_si * ion_atomic_number * rho_ion_initial_si / (2 * gamma_initial));
   compute_processes = static_cast<std::size_t>(processes) - 1;
   actual_particles = particles_target + compute_processes - particles_target % compute_processes;
   particles_per_process = actual_particles / compute_processes;
   assert(actual_particles % compute_processes == 0);
-  omega_on_axis = maximum_ion_density * cross_section * step_size;
-  sigma_dist = (bennett_radius / 2) * std::sqrt(alpha);
-  sigma = bennett_radius / (2 * std::sqrt(lambda));
-  if (omega_on_axis > 25) {
-    max_scattering_r_div_a = std::sqrt((std::sqrt(omega_on_axis) / 5) - 1);
-    percent_with_scattering = 100 * (1 - 5 / std::sqrt(omega_on_axis));
-  }
-  else {
-    max_scattering_r_div_a = 0;
-    percent_with_scattering = 0;
-  }
   actual_analysis_points = (steps / stride) + 1;
 }
