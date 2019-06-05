@@ -100,7 +100,7 @@ static void runComputeProcess(boost::mpi::communicator& world, Parameters& p)
     solve(beam.get(), statistics.get(), scattering, phase_space_file_ptr,
       p.particles_per_process, p.steps, p.stride, p.ion_atomic_number,
       p.step_size, p.bennett_radius_initial, p.rho_ion_initial, p.gamma_initial,
-      p.gamma_prime, p.delta, true, world.rank() == 1);
+      p.gamma_prime, p.delta, false, world.rank() == 1);
     world.send(0, 1, reinterpret_cast<char*>(statistics.get()),
        sizeof(Statistics) * p.actual_analysis_points);
   }

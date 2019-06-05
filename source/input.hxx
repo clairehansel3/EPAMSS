@@ -74,7 +74,7 @@ public:
   double omega_off_axis;
   double omega_on_axis_initial;
   double max_scattering_r_div_a_initial;
-  double sigma_r_initial;
+  double sigma_r_initial; // NOTE: drop initial ALSO TURN ON SCATTERNG
   double sigma_r_prime_initial;
   std::size_t steps;
   std::size_t stride;

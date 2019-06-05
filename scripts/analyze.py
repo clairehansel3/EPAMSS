@@ -16,9 +16,8 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import numpy as np
-import matplotlib.pyplot as plt
 import scipy.linalg
-import scipy.signal
+import plot
 
 def getOutputDict(output_filename):
     """
@@ -28,15 +27,15 @@ def getOutputDict(output_filename):
     'max_integration_depth' is a python int).
     """
     parameter_types = {
-        'maximum_ion_density': float,
-        'maximum_electron_density': float,
-        'plasma_length': float,
-        'beam_energy': float,
-        'bennett_radius': float,
-        'interaction_radius': float,
+        'rho_ion_initial_si': float,
+        'plasma_length_si': float,
+        'beam_energy_initial_gev': float,
+        'acceleration_gradient_gev_per_m': float,
+        'bennett_radius_initial_si': float,
+        'cross_section_radius_si': float,
+        'unperturbed_plasma_density_si': float,
         'integration_tolerance': float,
         'vartheta_cutoff': float,
-        'unperturbed_plasma_density': float,
         'ion_atomic_number': int,
         'minimum_steps_per_betatron_period': int,
         'particles_target': int,
@@ -49,26 +48,37 @@ def getOutputDict(output_filename):
         'statistics_filename': str,
         'phase_space_filename': str,
         'output_phase_space': bool,
-        'ion_linear_density': float,
-        'electron_linear_density': float,
-        'gamma': float,
-        'alpha': float,
-        'lambda': float,
-        'betatron_frequency': float,
-        'betatron_period': float,
+        'modified_bennett': bool,
+        'plasma_frequency_si': float,
+        'plasma_angular_wavenumber_si': float,
+        'plasma_skin_depth_si': float,
+        'rho_ion_initial': float,
+        'plasma_length': float,
+        'gamma_initial': float,
+        'gamma_prime': float,
+        'bennett_radius_initial': float,
+        'cross_section_radius': float,
+        'delta': float,
+        'gamma_final': float,
+        'bennett_radius_final': float,
+        'rho_ion_final': float,
+        'betatron_frequency_final': float,
+        'betatron_period_final': float,
+        'betatron_frequency_final_si': float,
+        'betatron_period_final_si': float,
         'step_size': float,
-        'cross_section': float,
-        'minimum_angle': float,
-        'max_scattering_r_div_a': float,
-        'percent_with_scattering': float,
-        'omega_on_axis': float,
-        'sigma_dist': float,
-        'sigma': float,
+        'step_size_si': float,
+        'gamma_minimum_angle': float,
+        'omega_off_axis': float,
+        'omega_on_axis_initial': float,
+        'max_scattering_r_div_a_initial': float,
+        'sigma_r_initial': float,
+        'sigma_r_prime_initial': float,
         'steps': int,
         'stride': int,
+        'compute_processes': int,
         'actual_particles': int,
         'particles_per_process': int,
-        'compute_processes': int,
         'actual_analysis_points': int,
         'seconds_elapsed': float,
         'minutes_elapsed': float,
@@ -78,7 +88,7 @@ def getOutputDict(output_filename):
     output_dict = {}
     with open(output_filename, 'r') as f:
         for line in f:
-            key, _, value = line.split()
+            key, _, value, *_ = line.split()
             if parameter_types[key] is bool:
                 if value in ('true', 'True'):
                     output_dict[key] = True
@@ -142,6 +152,10 @@ def getPhaseSpace(output_dict):
     assert output_dict['output_phase_space']
     phase_space = np.empty((2, 4, output_dict['actual_particles'], output_dict['actual_analysis_points']))
     for i in range(output_dict['compute_processes']):
+        import os
+        print(os.path.getsize('{}_{}'.format(output_dict['phase_space_filename'], i + 1)))
+        print(2 * output_dict['actual_analysis_points'] * output_dict['particles_per_process'] * 4)
+        print(8 * 2 * output_dict['actual_analysis_points'] * output_dict['particles_per_process'] * 4)
         raw_data = np.memmap(
             '{}_{}'.format(output_dict['phase_space_filename'], i + 1),
             dtype=np.float64,
@@ -180,39 +194,50 @@ def get4DEmittance(covariance_matrix):
     """
     return np.sqrt(np.linalg.det(np.transpose(covariance_matrix, (0, 3, 1, 2))))
 
-def getAverageEnergy(output_dict, phase_space):
-    x = phase_space[:, 0, :, :]
-    vx = phase_space[:, 1, :, :]
-    y = phase_space[:, 2, :, :]
-    vy = phase_space[:, 3, :, :]
-    energy = vx ** 2 + vy ** 2 + output_dict['alpha'] * np.log(
-        1 + ((x ** 2 + y ** 2) / (output_dict['bennett_radius'] ** 2)))
-    avg_energy = np.mean(energy, axis=1)
-    return avg_energy
+def getGamma(output_dict, z):
+    return output_dict['gamma_initial'] + output_dict['gamma_prime'] * z
 
-def computeEmittance(x, vx):
-    assert len(x) == len(vx)
+def getBennettRadius(output_dict, gamma):
+    return output_dict['bennett_radius_initial'] * ((gamma / output_dict['gamma_initial']) ** (-1/4))
+
+def getRhoIon(output_dict, gamma):
+    return output_dict['rho_ion_initial'] * np.sqrt(gamma / output_dict['gamma_initial'])
+
+def getEnergy(output_dict, phase_space, gamma, rho_ion, bennett_radius):
+    x = phase_space[:, 0, :, :]
+    px = phase_space[:, 1, :, :]
+    y = phase_space[:, 2, :, :]
+    py = phase_space[:, 3, :, :]
+    a2 = bennett_radius * bennett_radius
+    x2 = x * x
+    y2 = y * y
+    energy = (px * px + py * py) / (2 * gamma) + \
+        (output_dict['ion_atomic_number'] / 4) * (x2 + y2 + rho_ion * a2 * np.log(a2 + x2 + y2))
+    return energy
+
+def computeEmittance(x, px):
+    assert len(x) == len(px)
     N = len(x)
     x_mean = 0.0
-    vx_mean = 0.0
+    px_mean = 0.0
     for i in range(N):
         x_mean += x[i]
-        vx_mean += vx[i]
+        px_mean += px[i]
     x_mean /= N
-    vx_mean /= N
+    px_mean /= N
     m_x = 0.0
-    m_vx = 0.0
+    m_px = 0.0
     c_x = 0.0
     for i in range(N):
         delta_x = x[i] - x_mean
-        delta_vx = vx[i] - vx_mean
+        delta_px = px[i] - px_mean
         m_x += delta_x * delta_x
-        m_vx += delta_vx * delta_vx
-        c_x += delta_x * delta_vx
+        m_px += delta_px * delta_px
+        c_x += delta_x * delta_px
     val_x2 = m_x / N
-    val_vx2 = m_vx / N
-    val_xvx = c_x / N
-    x_emit = np.sqrt(val_x2 * val_vx2 - val_xvx * val_xvx)
+    val_px2 = m_px / N
+    val_xpx = c_x / N
+    x_emit = np.sqrt(val_x2 * val_px2 - val_xpx * val_xpx)
     return x_emit
 
 def getEmittanceFromPhaseSpace(phase_space):
@@ -223,108 +248,24 @@ def getEmittanceFromPhaseSpace(phase_space):
             emit[i][1].append(computeEmittance(phase_space[i, 2, :, step], phase_space[i, 3, :, step]))
     return np.array(emit)
 
-def plotAverageEnergy(output_dict, z, avg_energy):
-    k_beta = np.sqrt(output_dict['alpha']) / output_dict['bennett_radius']
-    plt.title('Average Energy Growth')
-    plt.plot(k_beta * z, 100 * ((avg_energy[0] / avg_energy[0, 0]) - 1), label='no scattering', color='blue')
-    plt.plot(k_beta * z, 100 * ((avg_energy[1] / avg_energy[1, 0]) - 1), label='scattering', color='red')
-    plt.xlabel(r'$k_{\beta} z$ [unitless]')
-    plt.xlabel(r'Percent Average Energy Growth [unitless]')
-    plt.legend()
-    plt.savefig('results/avg_energy.png')
-    plt.cla()
-
-def plot4DEmittanceGrowth(output_dict, z, emittance_4d, smoothing_on, window_size=101, order=3):
-    k_beta = np.sqrt(output_dict['alpha']) / output_dict['bennett_radius']
-    ns_emit = np.copy(emittance_4d[0, :])
-    s_emit = np.copy(emittance_4d[1, :])
-    z2 = np.copy(z)
-    #avg_emit = np.mean(ns_emit)
-    #ns_emit /= avg_emit
-    #s_emit /= avg_emit
-    if smoothing_on:
-        ns_emit = scipy.signal.savgol_filter(ns_emit, window_size, order)
-        s_emit = scipy.signal.savgol_filter(s_emit, window_size, order)
-        ns_emit = ns_emit[window_size:-window_size]
-        s_emit = s_emit[window_size:-window_size]
-        z2 = z2[window_size:-window_size]
-        plt.title('4D RMS Emittance Growth (smoothed, window_size={}, order={})'.format(window_size, order))
-    else:
-        plt.title('4D RMS Emittance Growth')
-    plt.plot(k_beta * z2, ns_emit, label='no scattering', color='blue')
-    plt.plot(k_beta * z2, s_emit, label='scattering', color='red')
-    plt.xlim(0, k_beta * output_dict['plasma_length'])
-    plt.xlabel(r'$k_{\beta} z$ [unitless]')
-    plt.ylabel(r'Normalized $\epsilon_{4D}(z)$ [?]')
-    plt.legend()
-    if smoothing_on:
-        plt.savefig('results/emit_4d_window_{}_order_{}.png'.format(window_size, order))
-    else:
-        plt.savefig('results/emit_4d.png')
-    plt.cla()
-
-
-def plot2DEmittanceGrowth(output_dict, z, emittances_2d, smoothing_on, window_size=101, order=3):
-    k_beta = np.sqrt(output_dict['alpha']) / output_dict['bennett_radius']
-    ns_x_emit = np.copy(emittances_2d[0, 0, :])
-    ns_y_emit = np.copy(emittances_2d[0, 1, :])
-    s_x_emit = np.copy(emittances_2d[1, 0, :])
-    s_y_emit = np.copy(emittances_2d[1, 1, :])
-    z2 = np.copy(z)
-    #avg_emit = np.mean(np.concatenate((ns_x_emit, ns_y_emit)))
-    #ns_x_emit /= avg_emit
-    #ns_y_emit /= avg_emit
-    #s_x_emit /= avg_emit
-    #s_y_emit /= avg_emit
-    if smoothing_on:
-        ns_x_emit = scipy.signal.savgol_filter(ns_x_emit, window_size, order)
-        ns_y_emit = scipy.signal.savgol_filter(ns_y_emit, window_size, order)
-        s_x_emit = scipy.signal.savgol_filter(s_x_emit, window_size, order)
-        s_y_emit = scipy.signal.savgol_filter(s_y_emit, window_size, order)
-        ns_x_emit = ns_x_emit[window_size:-window_size]
-        ns_y_emit = ns_y_emit[window_size:-window_size]
-        s_x_emit = s_x_emit[window_size:-window_size]
-        s_y_emit = s_y_emit[window_size:-window_size]
-        z = z[window_size:-window_size]
-        plt.title('2D RMS Emittance Growth (smoothed, window_size={}, order={})'.format(window_size, order))
-    else:
-        plt.title('2D RMS Emittance Growth')
-    plt.plot(k_beta * z, ns_x_emit, label='x (no scattering)', color='blue')
-    plt.plot(k_beta * z, ns_y_emit, label='y (no scattering)', color='green')
-    plt.plot(k_beta * z, s_x_emit, label='x (scattering)', color='red')
-    plt.plot(k_beta * z, s_y_emit, label='y (scattering)', color='orange')
-    plt.xlim(0, k_beta * output_dict['plasma_length'])
-    plt.xlabel(r'$k_{\beta} z$ [unitless]')
-    plt.ylabel(r'$\epsilon_{2D}(z)$ [m]')
-    plt.legend()
-    if smoothing_on:
-        plt.savefig('results/emit_2d_window_{}_order_{}.png'.format(window_size, order))
-    else:
-        plt.savefig('results/emit_2d.png')
-    plt.cla()
-
-def generate2DEmittanceGrowthRates(z, emittances_2d):
-    s_x_emit = np.copy(emittances_2d[1, 0, :])
-    s_y_emit = np.copy(emittances_2d[1, 1, :])
-    #s_x_emit /= s_x_emit[0]
-    #s_y_emit /= s_y_emit[0]
-    slope_x, intercept_x, r_value_x, p_value_x, std_err_x = scipy.stats.linregress(z, s_x_emit - 1);
-    slope_y, intercept_y, r_value_y, p_value_y, std_err_y = scipy.stats.linregress(z, s_y_emit - 1);
-    with open('results/growth_rate.txt', 'w') as f:
-        f.write('g_x = {} +/- {}\n'.format(slope_x, std_err_x))
-        f.write('g_y = {} +/- {}\n'.format(slope_y, std_err_y))
-
 def analyze():
     output_dict = getOutputDict('data/output')
+    phase_space = getPhaseSpace(output_dict)
     z = getZ(output_dict)
+    gamma = getGamma(output_dict, z)
+    bennett_radius = getBennettRadius(output_dict, gamma)
+    rho_ion = getRhoIon(output_dict, gamma)
     means, covariance_matrix = getStatistics(output_dict)
     emittance_4d = get4DEmittance(covariance_matrix)
     emittances_2d = get2DEmittances(covariance_matrix)
-    plot4DEmittanceGrowth(output_dict, z, emittance_4d, False)
-    plot4DEmittanceGrowth(output_dict, z, emittance_4d, True)
-    plot2DEmittanceGrowth(output_dict, z, emittances_2d, False)
-    plot2DEmittanceGrowth(output_dict, z, emittances_2d, True)
-    generate2DEmittanceGrowthRates(z, emittances_2d)
+    energy = getEnergy(output_dict, phase_space, gamma, rho_ion, bennett_radius)
+    #plot.plotBennettParameters(output_dict, z, gamma, rho_ion, bennett_radius)
+    plot.plotTraj(output_dict, z, phase_space)
+    #plot.createHistogramMovie(output_dict, z, phase_space, bennett_radius, rho_ion, gamma)
+    #plot.plotEnergy(output_dict, z, energy)
+    #plot.plot4DEmittanceGrowth(output_dict, z, emittance_4d, False)
+    #plot.plot2DEmittanceGrowth(output_dict, z, emittances_2d, False)
+    #plot.generate2DEmittanceGrowthRates(output_dict, z, emittances_2d)
 
 if __name__ == '__main__':
     analyze()

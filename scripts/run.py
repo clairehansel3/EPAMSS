@@ -20,27 +20,33 @@ import subprocess
 Hoffman2 = False
 
 def run():
+    import os
+    os.system('rm data/*')
+    os.system('rm frames/*')
+    os.system('rm results/*')
     compute_processes = 1
     parameters = {
-        'maximum_ion_density':1e26,
-        'plasma_length':10,
-        'beam_energy':10,
-        'electron_linear_density':1.56e14,
-        'bennett_radius':2.5e-8,
-        'interaction_radius':1e-6,
-        'integration_tolerance':1e-15,
-        'vartheta_cutoff': 10,
-        'ion_atomic_number':1,
-        'minimum_steps_per_betatron_period':200,
-        'particles_target':100,
-        'analysis_points_target':1000,
-        'spline_points':1000,
-        'max_order':1,
-        'max_integration_depth':15,
-        'output_filename':'data/output',
-        'statistics_filename':'data/statistics',
-        'phase_space_filename':'data/phase_space',
-        'output_phase_space':False
+        'rho_ion_initial_si': 1.3e26,
+        'plasma_length_si': 1,
+        'beam_energy_initial_gev': 8,
+        'acceleration_gradient_gev_per_m': 8,
+        'bennett_radius_initial_si': 2.5e-8,
+        'cross_section_radius_si': 1e-8,
+        'unperturbed_plasma_density_si': 9.3e23,
+        'integration_tolerance': 1e-15,
+        'vartheta_cutoff': 11,
+        'ion_atomic_number': 1,
+        'minimum_steps_per_betatron_period': 100,
+        'particles_target': 53040,
+        'analysis_points_target': 100,
+        'spline_points': 952,
+        'max_order': 0,
+        'max_integration_depth': 15,
+        'output_filename': 'data/output',
+        'statistics_filename': 'data/statistics',
+        'phase_space_filename': 'data/phase_space',
+        'output_phase_space': True,
+        'modified_bennett': True
     }
     with open('data/input', 'w') as f:
         for key, value in parameters.items():
@@ -55,6 +61,8 @@ def run():
             ['mpirun', '-np', str(compute_processes+1), 'epamss', 'data/input'],
             check=True
         )
+    import analyze
+    analyze.analyze()
 
 if __name__ == '__main__':
     run()

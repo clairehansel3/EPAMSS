@@ -218,7 +218,6 @@ Parameters::Parameters(const char* input_path, boost::mpi::communicator& world)
   EPAMSS_READ_PARAMETER(dict, minimum_steps_per_betatron_period);
   EPAMSS_READ_PARAMETER(dict, particles_target);
   EPAMSS_READ_PARAMETER(dict, analysis_points_target);
-  EPAMSS_READ_PARAMETER(dict, analysis_points_target);
   EPAMSS_READ_PARAMETER(dict, spline_points);
 
   try {
@@ -345,6 +344,7 @@ void Parameters::computeDependentParameters(int processes)
   plasma_length = plasma_length_si * plasma_angular_wavenumber_si;
   gamma_initial = beam_energy_initial_gev * 1000 / electron_rest_energy_mev;
   gamma_prime = plasma_skin_depth_si * acceleration_gradient_gev_per_m * 1000 / electron_rest_energy_mev;
+  assert(gamma_prime >= 0);
   bennett_radius_initial = bennett_radius_initial_si * plasma_angular_wavenumber_si;
   cross_section_radius = cross_section_radius_si * plasma_angular_wavenumber_si;
   delta = modified_bennett ? 1.0 : 0.0;

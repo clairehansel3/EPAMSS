@@ -62,7 +62,7 @@ void solve(Particle* beam, Statistics* statistics, Scattering& scattering,
 
   int percent = -1;
 
-  for (std::size_t step; step != steps + 1; ++step) {
+  for (std::size_t step = 0; step != steps + 1; ++step) {
 
     // print progress
     if (print_progress) {
@@ -104,19 +104,20 @@ void solve(Particle* beam, Statistics* statistics, Scattering& scattering,
 
       // compute force
       double r2_old = x_old * x_old + y_old * y_old;
-      double value_old = -0.5 * ion_atomic_number * (delta + rho_ion / (1 + r2_old / (bennett_radius * bennett_radius)));
+      double value_old = -0.5 * ion_atomic_number * (delta + rho_ion / (1 + (r2_old / (bennett_radius * bennett_radius))));
       double fx_old = value_old * x_old;
-      double fy_old = value_old * x_old;
+      double fy_old = value_old * y_old;
+
 
       // compute new positions
-      double x_new = x_old + step_size * (px_old / gamma) + 0.5 * step_size * step_size * fx_old;
-      double y_new = y_old + step_size * (py_old / gamma) + 0.5 * step_size * step_size * fy_old;
+      double x_new = x_old + step_size * (px_old + 0.5 * step_size * fx_old) / gamma;
+      double y_new = y_old + step_size * (py_old + 0.5 * step_size * fy_old) / gamma;
 
       // compute new force
       double r2_new = x_new * x_new + y_new * y_new;
-      double value_new = -0.5 * ion_atomic_number * (delta + rho_ion_next / (1 + r2_new / (bennett_radius_next * bennett_radius_next)));
+      double value_new = -0.5 * ion_atomic_number * (delta + rho_ion_next / (1 + (r2_new / (bennett_radius_next * bennett_radius_next))));
       double fx_new = value_new * x_new;
-      double fy_new = value_new * x_new;
+      double fy_new = value_new * y_new;
 
       // compute new momenta
       double px_new = px_old + 0.5 * step_size * (fx_old + fx_new);
@@ -126,6 +127,29 @@ void solve(Particle* beam, Statistics* statistics, Scattering& scattering,
       if (scattering_enabled)
         scattering.scatter(x_new, px_new, y_new, py_new, gamma_next, bennett_radius_next, rho_ion_next, delta);
 
+        /*
+      if (particle == 0 && step < 10) {
+
+        std::cout << "gamma" << gamma << std::endl;
+        std::cout << "bennett_radius" << bennett_radius << std::endl;
+        std::cout << "rho_ion" << rho_ion << std::endl;
+        std::cout << "x_old" << x_old << std::endl;
+        std::cout << "x_new" << x_new << std::endl;
+        std::cout << "y_old" << y_old << std::endl;
+        std::cout << "y_new" << y_new << std::endl;
+        std::cout << "px_old" << px_old << std::endl;
+        std::cout << "px_new" << px_new << std::endl;
+        std::cout << "py_old" << py_old << std::endl;
+        std::cout << "py_new" << py_new << std::endl;
+        std::cout << "fx_old" << fx_old << std::endl;
+        std::cout << "fx_new" << fx_new << std::endl;
+        std::cout << "fy_old" << fy_old << std::endl;
+        std::cout << "fy_new" << fy_new << std::endl;
+
+      }
+
+
+      */
       // write result to beam
       beam[particle].x = x_new;
       beam[particle].px = px_new;
