@@ -72,7 +72,7 @@ def getOutputDict(output_filename):
         'omega_off_axis': float,
         'omega_on_axis_initial': float,
         'max_scattering_r_div_a_initial': float,
-        'sigma_r_initial': float,
+        'sigma_r': float,
         'sigma_r_prime_initial': float,
         'steps': int,
         'stride': int,
@@ -153,9 +153,6 @@ def getPhaseSpace(output_dict):
     phase_space = np.empty((2, 4, output_dict['actual_particles'], output_dict['actual_analysis_points']))
     for i in range(output_dict['compute_processes']):
         import os
-        print(os.path.getsize('{}_{}'.format(output_dict['phase_space_filename'], i + 1)))
-        print(2 * output_dict['actual_analysis_points'] * output_dict['particles_per_process'] * 4)
-        print(8 * 2 * output_dict['actual_analysis_points'] * output_dict['particles_per_process'] * 4)
         raw_data = np.memmap(
             '{}_{}'.format(output_dict['phase_space_filename'], i + 1),
             dtype=np.float64,
@@ -250,7 +247,7 @@ def getEmittanceFromPhaseSpace(phase_space):
 
 def analyze():
     output_dict = getOutputDict('data/output')
-    phase_space = getPhaseSpace(output_dict)
+    #phase_space = getPhaseSpace(output_dict)
     z = getZ(output_dict)
     gamma = getGamma(output_dict, z)
     bennett_radius = getBennettRadius(output_dict, gamma)
@@ -258,13 +255,13 @@ def analyze():
     means, covariance_matrix = getStatistics(output_dict)
     emittance_4d = get4DEmittance(covariance_matrix)
     emittances_2d = get2DEmittances(covariance_matrix)
-    energy = getEnergy(output_dict, phase_space, gamma, rho_ion, bennett_radius)
+    #energy = getEnergy(output_dict, phase_space, gamma, rho_ion, bennett_radius)
     #plot.plotBennettParameters(output_dict, z, gamma, rho_ion, bennett_radius)
-    plot.plotTraj(output_dict, z, phase_space)
+    #plot.plotTraj(output_dict, z, phase_space)
     #plot.createHistogramMovie(output_dict, z, phase_space, bennett_radius, rho_ion, gamma)
     #plot.plotEnergy(output_dict, z, energy)
     #plot.plot4DEmittanceGrowth(output_dict, z, emittance_4d, False)
-    #plot.plot2DEmittanceGrowth(output_dict, z, emittances_2d, False)
+    plot.plot2DEmittanceGrowth(output_dict, z, emittances_2d, False)
     #plot.generate2DEmittanceGrowthRates(output_dict, z, emittances_2d)
 
 if __name__ == '__main__':

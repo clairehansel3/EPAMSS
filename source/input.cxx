@@ -309,7 +309,7 @@ void Parameters::writeOutputFile(double seconds)
     EPAMSS_WRITE(file, omega_off_axis, "");
     EPAMSS_WRITE(file, omega_on_axis_initial, "");
     EPAMSS_WRITE(file, max_scattering_r_div_a_initial, "");
-    EPAMSS_WRITE(file, sigma_r_initial, "");
+    EPAMSS_WRITE(file, sigma_r, "");
     EPAMSS_WRITE(file, sigma_r_prime_initial, "");
     EPAMSS_WRITE(file, steps, "");
     EPAMSS_WRITE(file, stride, "");
@@ -375,7 +375,7 @@ void Parameters::computeDependentParameters(int processes)
   else {
     max_scattering_r_div_a_initial = std::sqrt(std::sqrt(rho_ion_initial * omega_off_axis / (25 - delta * omega_off_axis)) - 1);
   }
-  sigma_r_initial = 0.5 * bennett_radius_initial * std::sqrt(rho_ion_initial);
+  sigma_r = 0.5 * bennett_radius_initial * std::sqrt(rho_ion_initial);
   sigma_r_prime_initial = std::sqrt(boost::math::constants::pi<double>() * classical_electron_radius * bennett_radius_initial_si * bennett_radius_initial_si * ion_atomic_number * rho_ion_initial_si / (2 * gamma_initial));
   compute_processes = static_cast<std::size_t>(processes) - 1;
   actual_particles = particles_target + compute_processes - particles_target % compute_processes;

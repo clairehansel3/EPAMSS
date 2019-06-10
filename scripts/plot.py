@@ -63,7 +63,7 @@ def createHistogramMovie(output_dict, z, phase_space, bennett_radius, rho_ion, g
             vrs = np.linspace(-4 * sigma[j], 4 * sigma[j], 1000)
             rvths = np.linspace(-4 * sigma[j], 4 * sigma[j], 1000)
             def unnormalizedpdf(r2):
-                return r2 * np.exp(-r2 ** 2 / (2 * output_dict['sigma_r_initial'] ** 2)) / \
+                return r2 * np.exp(-r2 ** 2 / (2 * output_dict['sigma_r'] ** 2)) / \
                     ((1 + ((r2 / bennett_radius[j]) ** 2)) ** 2)
             normalization_factor = scipy.integrate.quadrature(unnormalizedpdf, 0, r_div_a_max * bennett_radius[j], miniter=5)[0]
             theoretical_particle_density = unnormalizedpdf(rs) / normalization_factor

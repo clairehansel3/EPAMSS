@@ -22,7 +22,7 @@
 #include <iostream>
 
 void initializeBeam(Particle* beam, std::size_t particles,
-  double bennett_radius_initial, double gamma_initial, double sigma_r_initial,
+  double bennett_radius_initial, double gamma_initial, double sigma_r,
   double sigma_r_prime_initial, bool modified_bennett)
 {
   for (std::size_t particle = 0; particle != particles; ++particle) {
@@ -31,7 +31,7 @@ void initializeBeam(Particle* beam, std::size_t particles,
     double r;
     while (true) {
       auto test_r = bennett_radius_initial / std::sqrt((1 / randomUniform()) - 1);
-      if (!modified_bennett || randomUniform() < std::exp(-test_r * test_r / (2 * sigma_r_initial * sigma_r_initial))) {
+      if (!modified_bennett || randomUniform() < std::exp(-test_r * test_r / (2 * sigma_r * sigma_r))) {
         r = test_r;
         break;
       }
@@ -127,29 +127,6 @@ void solve(Particle* beam, Statistics* statistics, Scattering& scattering,
       if (scattering_enabled)
         scattering.scatter(x_new, px_new, y_new, py_new, gamma_next, bennett_radius_next, rho_ion_next, delta);
 
-        /*
-      if (particle == 0 && step < 10) {
-
-        std::cout << "gamma" << gamma << std::endl;
-        std::cout << "bennett_radius" << bennett_radius << std::endl;
-        std::cout << "rho_ion" << rho_ion << std::endl;
-        std::cout << "x_old" << x_old << std::endl;
-        std::cout << "x_new" << x_new << std::endl;
-        std::cout << "y_old" << y_old << std::endl;
-        std::cout << "y_new" << y_new << std::endl;
-        std::cout << "px_old" << px_old << std::endl;
-        std::cout << "px_new" << px_new << std::endl;
-        std::cout << "py_old" << py_old << std::endl;
-        std::cout << "py_new" << py_new << std::endl;
-        std::cout << "fx_old" << fx_old << std::endl;
-        std::cout << "fx_new" << fx_new << std::endl;
-        std::cout << "fy_old" << fy_old << std::endl;
-        std::cout << "fy_new" << fy_new << std::endl;
-
-      }
-
-
-      */
       // write result to beam
       beam[particle].x = x_new;
       beam[particle].px = px_new;
