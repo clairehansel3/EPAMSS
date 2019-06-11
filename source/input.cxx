@@ -356,11 +356,20 @@ void Parameters::computeDependentParameters(int processes)
   betatron_period_final = 2 * boost::math::constants::pi<double>() / betatron_frequency_final;
   betatron_frequency_final_si = plasma_angular_wavenumber_si * betatron_frequency_final;
   betatron_period_final_si = plasma_skin_depth_si * betatron_period_final;
+  #ifdef EPAMSS_TEST_SCATTERING
+  steps = minimum_steps_per_betatron_period;
+  #else
   steps = static_cast<std::size_t>(std::ceil(
     minimum_steps_per_betatron_period * plasma_length * betatron_frequency_final
     / (2 * boost::math::constants::pi<double>())
   ));
-  stride = steps / analysis_points_target;
+  #endif
+  if (analysis_points_target == 0 || analysis_points_target >= steps) {
+    stride = 1;
+  }
+  else {
+    stride = steps / analysis_points_target;
+  }
   step_size = plasma_length / steps;
   step_size_si = step_size * plasma_skin_depth_si;
   gamma_minimum_angle = 2 * ion_atomic_number * classical_electron_radius / cross_section_radius_si;

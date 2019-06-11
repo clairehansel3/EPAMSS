@@ -76,6 +76,17 @@ double Moliere::pdf(double theta, double B)
   return value;
 }
 
+double Moliere::pdf(double theta, double B, unsigned max_order)
+{
+  double value = compute_f_0(theta);
+  if (theta < m_vartheta_cutoff)
+    for (unsigned order = 1; order <= max_order; ++order) {
+      value += m_splines[order - 1](theta)
+               * std::pow(B, -static_cast<double>(order));
+    }
+  return value;
+}
+
 double Moliere::sample(double B)
 {
   if (m_max_order == 0) {
@@ -86,6 +97,22 @@ double Moliere::sample(double B)
   while (true) {
     double vartheta = m_vartheta_cutoff * randomUniform();
     if (randomUniform() <= pdf(vartheta, B)) {
+      return vartheta;
+    }
+  }
+}
+
+
+double Moliere::sample(double B, unsigned max_order)
+{
+  if (max_order == 0) {
+    double vartheta = std::sqrt(-std::log(1 - randomUniform()));
+    assert(std::isfinite(vartheta));
+    return vartheta;
+  }
+  while (true) {
+    double vartheta = m_vartheta_cutoff * randomUniform();
+    if (randomUniform() <= pdf(vartheta, B, max_order)) {
       return vartheta;
     }
   }

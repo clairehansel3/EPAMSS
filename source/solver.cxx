@@ -27,6 +27,15 @@ void initializeBeam(Particle* beam, std::size_t particles,
 {
   for (std::size_t particle = 0; particle != particles; ++particle) {
 
+    #ifdef EPAMSS_TEST_SCATTERING
+
+    beam[particle].x = 0;
+    beam[particle].y = 0;
+    beam[particle].px = 0;
+    beam[particle].py = 0;
+
+    #else
+
     // sample r using rejection sampling
     double r;
     while (true) {
@@ -47,6 +56,8 @@ void initializeBeam(Particle* beam, std::size_t particles,
     beam[particle].y = r * std::sin(theta);
     beam[particle].px = gamma_initial * (r_prime * std::cos(theta) - r_theta_prime * std::sin(theta));
     beam[particle].py = gamma_initial * (r_prime * std::sin(theta) + r_theta_prime * std::cos(theta));
+
+    #endif
 
   }
 }
@@ -102,6 +113,15 @@ void solve(Particle* beam, Statistics* statistics, Scattering& scattering,
       double y_old  = beam[particle].y;
       double py_old = beam[particle].py;
 
+      #ifdef EPAMSS_TEST_SCATTERING
+
+      double x_new = x_old + step_size * (px_old + 0.5) / gamma;
+      double y_new = y_old + step_size * (py_old + 0.5) / gamma;
+      double px_new = px_old;
+      double py_new = py_old;
+
+      #else
+
       // compute force
       double r2_old = x_old * x_old + y_old * y_old;
       double value_old = -0.5 * ion_atomic_number * (delta + rho_ion / (1 + (r2_old / (bennett_radius * bennett_radius))));
@@ -122,6 +142,8 @@ void solve(Particle* beam, Statistics* statistics, Scattering& scattering,
       // compute new momenta
       double px_new = px_old + 0.5 * step_size * (fx_old + fx_new);
       double py_new = py_old + 0.5 * step_size * (fy_old + fy_new);
+
+      #endif
 
       // compute scattering
       if (scattering_enabled)

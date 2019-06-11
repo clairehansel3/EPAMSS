@@ -34,6 +34,10 @@ public:
 
   double sample(double B);
 
+  double pdf(double theta, double B, unsigned max_order);
+
+  double sample(double B, unsigned max_order);
+
 private:
 
   class Spline {
