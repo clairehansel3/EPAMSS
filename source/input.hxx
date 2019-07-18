@@ -54,7 +54,7 @@ public:
   double plasma_frequency_si;
   double plasma_angular_wavenumber_si;
   double plasma_skin_depth_si;
-  double rho_ion_initial;
+  double rho_ion_div_n0_initial;
   double plasma_length;
   double gamma_initial;
   double gamma_prime;
@@ -63,7 +63,7 @@ public:
   double delta;
   double gamma_final;
   double bennett_radius_final;
-  double rho_ion_final;
+  double rho_ion_div_n0_final;
   double betatron_frequency_final;
   double betatron_period_final;
   double betatron_frequency_final_si;

@@ -289,7 +289,7 @@ void Parameters::writeOutputFile(double seconds)
     EPAMSS_WRITE(file, plasma_frequency_si, "s^-1");
     EPAMSS_WRITE(file, plasma_angular_wavenumber_si, "m^-1");
     EPAMSS_WRITE(file, plasma_skin_depth_si, "m");
-    EPAMSS_WRITE(file, rho_ion_initial, "");
+    EPAMSS_WRITE(file, rho_ion_div_n0_initial, "");
     EPAMSS_WRITE(file, plasma_length, "");
     EPAMSS_WRITE(file, gamma_initial, "");
     EPAMSS_WRITE(file, gamma_prime, "");
@@ -298,7 +298,7 @@ void Parameters::writeOutputFile(double seconds)
     EPAMSS_WRITE(file, delta, "");
     EPAMSS_WRITE(file, gamma_final, "");
     EPAMSS_WRITE(file, bennett_radius_final, "");
-    EPAMSS_WRITE(file, rho_ion_final, "");
+    EPAMSS_WRITE(file, rho_ion_div_n0_final, "");
     EPAMSS_WRITE(file, betatron_frequency_final, "");
     EPAMSS_WRITE(file, betatron_period_final, "");
     EPAMSS_WRITE(file, betatron_frequency_final_si, "m^-1");
@@ -340,7 +340,7 @@ void Parameters::computeDependentParameters(int processes)
   plasma_frequency_si = elementary_charge * std::sqrt(unperturbed_plasma_density_si / (vacuum_permittivity * electron_mass));
   plasma_angular_wavenumber_si = plasma_frequency_si / c_light;
   plasma_skin_depth_si = 1 / plasma_angular_wavenumber_si;
-  rho_ion_initial = rho_ion_initial_si / unperturbed_plasma_density_si;
+  rho_ion_div_n0_initial = rho_ion_initial_si / unperturbed_plasma_density_si;
   plasma_length = plasma_length_si * plasma_angular_wavenumber_si;
   gamma_initial = beam_energy_initial_gev * 1000 / electron_rest_energy_mev;
   gamma_prime = plasma_skin_depth_si * acceleration_gradient_gev_per_m * 1000 / electron_rest_energy_mev;
@@ -351,8 +351,8 @@ void Parameters::computeDependentParameters(int processes)
   double gamma_final_over_gamma_initial = 1 + (gamma_prime * plasma_length / gamma_initial);
   gamma_final = gamma_initial * gamma_final_over_gamma_initial;
   bennett_radius_final = bennett_radius_initial * std::pow(gamma_final_over_gamma_initial, -0.25);
-  rho_ion_final = rho_ion_initial * std::sqrt(gamma_final_over_gamma_initial);
-  betatron_frequency_final = std::sqrt((ion_atomic_number * (rho_ion_final + delta) / (2 * gamma_final)) - (gamma_prime * gamma_prime / (4 * gamma_final * gamma_final)));
+  rho_ion_div_n0_final = rho_ion_div_n0_initial * std::sqrt(gamma_final_over_gamma_initial);
+  betatron_frequency_final = std::sqrt((ion_atomic_number * (rho_ion_div_n0_final + delta) / (2 * gamma_final)) - (gamma_prime * gamma_prime / (4 * gamma_final * gamma_final)));
   betatron_period_final = 2 * boost::math::constants::pi<double>() / betatron_frequency_final;
   betatron_frequency_final_si = plasma_angular_wavenumber_si * betatron_frequency_final;
   betatron_period_final_si = plasma_skin_depth_si * betatron_period_final;
@@ -374,7 +374,7 @@ void Parameters::computeDependentParameters(int processes)
   step_size_si = step_size * plasma_skin_depth_si;
   gamma_minimum_angle = 2 * ion_atomic_number * classical_electron_radius / cross_section_radius_si;
   omega_off_axis = boost::math::constants::pi<double>() * cross_section_radius_si * cross_section_radius_si * step_size_si * unperturbed_plasma_density_si;
-  omega_on_axis_initial = omega_off_axis * (rho_ion_initial + delta);
+  omega_on_axis_initial = omega_off_axis * (rho_ion_div_n0_initial + delta);
   if (omega_on_axis_initial < 25) {
     max_scattering_r_div_a_initial = 0;
   }
@@ -382,9 +382,9 @@ void Parameters::computeDependentParameters(int processes)
     max_scattering_r_div_a_initial = std::numeric_limits<double>::infinity();
   }
   else {
-    max_scattering_r_div_a_initial = std::sqrt(std::sqrt(rho_ion_initial * omega_off_axis / (25 - delta * omega_off_axis)) - 1);
+    max_scattering_r_div_a_initial = std::sqrt(std::sqrt(rho_ion_div_n0_initial * omega_off_axis / (25 - delta * omega_off_axis)) - 1);
   }
-  sigma_r = 0.5 * bennett_radius_initial * std::sqrt(rho_ion_initial);
+  sigma_r = 0.5 * bennett_radius_initial * std::sqrt(rho_ion_div_n0_initial);
   sigma_r_prime_initial = std::sqrt(boost::math::constants::pi<double>() * classical_electron_radius * bennett_radius_initial_si * bennett_radius_initial_si * ion_atomic_number * rho_ion_initial_si / (2 * gamma_initial));
   compute_processes = static_cast<std::size_t>(processes) - 1;
   actual_particles = particles_target + compute_processes - particles_target % compute_processes;

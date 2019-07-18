@@ -19,12 +19,12 @@ import os
 import scipy.integrate
 
 def getOutputDict(output_filename):
-    """
+    '''
     Takes the path to the output file as an argument and returns a dict
     containing the values of the parameters in the output file converted to the
-    appropriate types (e.g. 'maximum_ion_density' is a python float and
-    'max_integration_depth' is a python int).
-    """
+    appropriate types (e.g. 'plasma_length_si' is a python float and
+    'ion_atomic_number' is a python int).
+    '''
     parameter_types = {
         'rho_ion_initial_si': float,
         'plasma_length_si': float,
@@ -51,7 +51,7 @@ def getOutputDict(output_filename):
         'plasma_frequency_si': float,
         'plasma_angular_wavenumber_si': float,
         'plasma_skin_depth_si': float,
-        'rho_ion_initial': float,
+        'rho_ion_div_n0_initial': float,
         'plasma_length': float,
         'gamma_initial': float,
         'gamma_prime': float,
@@ -60,7 +60,7 @@ def getOutputDict(output_filename):
         'delta': float,
         'gamma_final': float,
         'bennett_radius_final': float,
-        'rho_ion_final': float,
+        'rho_ion_div_n0_final': float,
         'betatron_frequency_final': float,
         'betatron_period_final': float,
         'betatron_frequency_final_si': float,
@@ -101,18 +101,21 @@ def getOutputDict(output_filename):
 
 
 def getStatistics(output_dict):
-    """
+    '''
     Reads the statistics file and returns the two arrays mean and
     covariance_matrix. For both arrays, the first dimension has size 2 and
     indicates whether scattering is enabled with 0 being without scattering and
     1 being with scattering. For the mean array, the second dimension has length
-    4 and indicates which value the mean is of, with 0 being x, 1 being x', 2
-    being y, and 3 being y'. For the covariance_matrix array, the second and
+    4 and indicates which value the mean is of, with 0 being x, 1 being px, 2
+    being y, and 3 being py. For the covariance_matrix array, the second and
     third dimensions both have length 4 and together they indicate which element
-    of the covariance matrix is wanted, e.g. (1, 2) corresponds to Cov(x', y).
+    of the covariance matrix is wanted, e.g. (1, 2) corresponds to Cov(px, y).
     Finally for both arrays the last dimension indicates at which analysis point
     the data were taken at and has length output_dict['actual_analysis_points'].
-    """
+
+    means: [scattering, coordinate, z]
+    covariance_matrix: [scattering, coordinate, coordinate, z]
+    '''
     raw_data = np.memmap(
         output_dict['statistics_filename'],
         dtype=np.float64,
@@ -140,8 +143,8 @@ def getStatistics(output_dict):
     covariance_matrix[:, 3, 3, :] = raw_data[:, :, 13]
     return means, covariance_matrix
 
-def getPhaseSpace(output_dict):
-    """
+def getPhaseSpace(output_dict, gamma):
+    '''
     Reads the phase space files and returns an array containing the phase space
     data. The first dimension of the result has size 2 and indicates whether
     scattering is enabled with 0 being without scattering and 1 being with
@@ -151,7 +154,9 @@ def getPhaseSpace(output_dict):
     the number of the particle. The fourth and last dimension has size
     output_dict['actual_analysis_points'] and indicates at which analysis point
     the data were taken.
-    """
+
+    [scattering, coordinate, particle, z]
+    '''
     assert output_dict['output_phase_space']
     phase_space = np.empty((2, 4, output_dict['actual_particles'],
         output_dict['actual_analysis_points']))
@@ -169,10 +174,22 @@ def getPhaseSpace(output_dict):
         phase_space[:, :, particle_start:particle_end, :] = np.transpose(
             raw_data, (0, 3, 2, 1))
         print('done transposing')
+    # undo coordinate transform
+    sqrt_gamma = np.sqrt(gamma)
+    print(phase_space.shape)
+    print(sqrt_gamma.shape)
+    for i in range(2):
+        for j in range(output_dict['actual_particles']):
+            phase_space[i, 0, j] /= sqrt_gamma
+            phase_space[i, 1, j] = sqrt_gamma * phase_space[i, 1, j] - 0.5 * \
+                phase_space[i, 0, j] * output_dict['gamma_prime']
+            phase_space[i, 2, j] /= sqrt_gamma
+            phase_space[i, 3, j] = sqrt_gamma * phase_space[i, 3, j] - 0.5 * \
+                phase_space[i, 2, j] * output_dict['gamma_prime']
     return phase_space
 
 def get2DEmittances(covariance_matrix):
-    """
+    '''
     Computes the 2D emittances from the scattering matrix. The first dimension
     of the result has size 2 and indicates whether scattering is enabled with 0
     being without scattering and 1 being with scattering. The second dimension
@@ -180,7 +197,9 @@ def get2DEmittances(covariance_matrix):
     emittance and 1 being the y emittance. The third and last dimension has size
     output_dict['actual_analysis_points'] and indicates at which analysis point
     the data were taken.
-    """
+
+    [scattering, coordinate, z]
+    '''
     emittances_2d = np.empty((2, 2, covariance_matrix.shape[3]))
     emittances_2d[:, 0, :] = np.sqrt(np.linalg.det(np.transpose(
         covariance_matrix[:, 0:2, 0:2, :], (0, 3, 1, 2))))
@@ -189,15 +208,34 @@ def get2DEmittances(covariance_matrix):
     return emittances_2d
 
 def get4DEmittance(covariance_matrix):
-    """
+    '''
     Computes the 4D transverse emittance from the scattering matrix. The first
     dimension of the result has size 2 and indicates whether scattering is
     enabled with 0 being without scattering and 1 being with scattering. The
     second dimension has size output_dict['actual_analysis_points'] and
     indicates at which analysis point the data were taken.
-    """
+
+    [scattering, z]
+    '''
     return np.sqrt(np.linalg.det(np.transpose(covariance_matrix, (0, 3, 1, 2))))
 
+def getEnergy(output_dict, phase_space, gamma, bennett_radius, rho_ion_div_n0):
+    '''
+    Computes the energy (divided by m_e c^2) from the phase space. The first
+    dimension of the result has size 2 and indicates whether scattering is
+    enabled with 0 being without scattering and 1 being with scattering. The
+    second dimension has size output_dict['actual_particles'] and indicates the
+    number of the particle. The third and final dimension has size
+    output_dict['actual_analysis_points'] indicates at which analysis point the
+    data were taken.
+
+    [scattering, particle, z]
+    '''
+    kinetic = 0.5 * (phase_space[:, 1] ** 2 + phase_space[:, 3] ** 2) / gamma
+    r2 = phase_space[:, 0] ** 2 + phase_space[:, 2] ** 2
+    potential = 0.25 * output_dict['ion_atomic_number'] * (output_dict['delta'] * r2 + (bennett_radius ** 2) * rho_ion_div_n0 * np.log(1 + r2 / (
+        bennett_radius ** 2)))
+    return kinetic + potential
 
 class Simulation(object):
 
@@ -212,13 +250,15 @@ class Simulation(object):
             self['gamma_initial']) ** (-1/4))
         self.bennett_radius_si = self['bennett_radius_initial_si'] * ((
             self.gamma / self['gamma_initial']) ** (-1/4))
-        self.rho_ion = self['rho_ion_initial'] * np.sqrt(self.gamma /
-            self['gamma_initial'])
+        self.rho_ion_div_n0 = self['rho_ion_div_n0_initial'] * np.sqrt(
+            self.gamma / self['gamma_initial'])
         self.rho_ion_si = self['rho_ion_initial_si'] * np.sqrt(self.gamma /
             self['gamma_initial'])
         self.means, self.covariance_matrix = getStatistics(self._output_dict)
         if read_phase_space and self['output_phase_space']:
-            self.phase_space = getPhaseSpace(self._output_dict)
+            self.phase_space = getPhaseSpace(self._output_dict, self.gamma)
+            self.energy = getEnergy(self._output_dict, self.phase_space,
+                self.gamma, self.bennett_radius, self.rho_ion_div_n0)
         self.emittance_4d_si = get4DEmittance(self.covariance_matrix) * \
             (self['plasma_skin_depth_si'] ** 2)
         self.emittances_2d_si = get2DEmittances(self.covariance_matrix) * \
@@ -237,8 +277,8 @@ class Simulation(object):
         plt.plot(self.z_si, self.emittances_2d_si[1, 1, :] * 1e9,
             label='y (scattering)', color='orange')
         plt.xlim(0, self['plasma_length_si'])
-        plt.xlabel(r'$z$ [m]')
-        plt.ylabel(r'$\epsilon_N$ [nm]')
+        plt.xlabel(r'$z$ (m)')
+        plt.ylabel(r'$\epsilon_N$ (nm)')
         plt.legend()
         if filename is None:
             plt.show()
@@ -246,8 +286,16 @@ class Simulation(object):
             plt.savefig(filename)
         plt.clf()
 
+    def plotEnergy(self, filename='results/energy.png'):
+        plt.plot(self.z_si, self.energy[0, 0])# * (self.gamma ** (1/4)))
+        plt.xlim(0, self['plasma_length_si'])
+        plt.xlabel(r'$z$ (m)')
+        plt.ylabel(r'$\mathcal{H} / m_e c^2$')
+        plt.savefig(filename)
+        plt.clf()
+
     @staticmethod
-    def plotScatteringTest(sims, labels, filename='results/scattering_test.png'):
+    def plotScatteringTest(sims, labels, filename='results/scatteringtest.png'):
         # check assertions
         parameters = ('unperturbed_plasma_density_si', 'plasma_length_si',
             'beam_energy_initial_gev')
@@ -265,8 +313,8 @@ class Simulation(object):
             #plt.plot(s.z_si, thy, label='simulation {} (y)'.format(label))
         # get theoretical values
         z_values = np.linspace(0, sims[0]['plasma_length_si'], 10000)
-        x = (1.6726219e-27 / 630.4) * sims[0]['unperturbed_plasma_density_si'] * \
-            z_values
+        x = (1.6726219e-27 / 630.4) * sims[0]['unperturbed_plasma_density_si'] \
+            * z_values
         theory = 26.61458558 * np.sqrt(x) * (1 + 0.038 * np.log(x)) / \
             sims[0]['gamma_initial']
         plt.plot(z_values, theory, label='Theory')
@@ -302,9 +350,9 @@ class Simulation(object):
                 rvth = (x * vy - y * vx) / r
                 # plot r distribution
                 r_div_a_max = 5
-                r_values = np.linspace(0, r_div_a_max * self.bennett_radius[j],
+                r_values = np.linspace(0, r_div_a_max * self.bennett_radius[0],
                     points)
-                r = r[r < r_div_a_max * self.bennett_radius[j]]
+                r = r[r < r_div_a_max * self.bennett_radius[0]]
                 def unnormalizedPDF(r):
                     return r * np.exp(-r ** 2 / (2 * self['sigma_r'] ** 2)) / \
                         ((1 + ((r / self.bennett_radius[j]) ** 2)) ** 2)
@@ -317,15 +365,15 @@ class Simulation(object):
                 plt.title(r'z = {} m'.format(self.z_si[j]))
                 plt.hist(r * self['plasma_skin_depth_si'], density=True,
                     bins=bins, range=(0, r_div_a_max *
-                    self.bennett_radius_si[j]))
+                    self.bennett_radius_si[0]))
                 plt.plot(r_values * self['plasma_skin_depth_si'], r_pdf *
                     self['plasma_angular_wavenumber_si'], label='modified')
                 plt.plot(r_values * self['plasma_skin_depth_si'],
                     r_pdf_unmodified * self['plasma_angular_wavenumber_si'],
                     label='unmodified')
                 plt.xlabel(r'$r$ [m]')
-                plt.xlim(0, r_div_a_max * self.bennett_radius_si[j])
-                plt.ylim(0, 3500000)
+                plt.xlim(0, r_div_a_max * self.bennett_radius_si[0])
+                plt.ylim(0, 35000000)
                 plt.legend()
                 plt.gca().get_xaxis().get_major_formatter().set_powerlimits(
                     (0, 1))
@@ -348,15 +396,15 @@ class Simulation(object):
                 plt.savefig('frames/frame_th_{}_{}'.format(scattering, j))
                 plt.clf()
                 # plot r' distribution
-                vr_values = np.linspace(-4 * sigma[j], 4 * sigma[j], points)
+                vr_values = np.linspace(-4 * sigma[0], 4 * sigma[0], points)
                 plt.title(r'z = {} m'.format(self.z_si[j]))
-                plt.hist(vr, density=True, bins=bins, range=(-4 * sigma[j],
-                    4 * sigma[j]))
+                plt.hist(vr, density=True, bins=bins, range=(-4 * sigma[0],
+                    4 * sigma[0]))
                 plt.plot(vr_values, np.exp(-vr_values ** 2 / (2 * sigma[j] ** \
                     2)) / (np.sqrt(2 * np.pi) * sigma[j]))
                 plt.xlabel(r'$\frac{dr}{dz}$ [unitless]')
-                plt.xlim(-4 * sigma[j], 4 * sigma[j])
-                plt.ylim(0, 40000)
+                plt.xlim(-4 * sigma[0], 4 * sigma[0])
+                plt.ylim(0, 7000)
                 plt.gca().get_xaxis().get_major_formatter().set_powerlimits(
                     (0, 1))
                 plt.gca().get_yaxis().get_major_formatter().set_powerlimits(
@@ -364,15 +412,15 @@ class Simulation(object):
                 plt.savefig('frames/frame_vr_{}_{}'.format(scattering, j))
                 plt.clf()
                 # plot r' distribution
-                rvth_values = np.linspace(-4 * sigma[j], 4 * sigma[j], points)
+                rvth_values = np.linspace(-4 * sigma[0], 4 * sigma[0], points)
                 plt.title(r'z = {} m'.format(self.z_si[j]))
-                plt.hist(vr, density=True, bins=bins, range=(-4 * sigma[j], 4 *
-                    sigma[j]))
-                plt.plot(vr_values, np.exp(-vr_values ** 2 / (2 * sigma[j] ** \
+                plt.hist(rvth, density=True, bins=bins, range=(-4 * sigma[0], 4 *
+                    sigma[0]))
+                plt.plot(rvth_values, np.exp(-rvth_values ** 2 / (2 * sigma[j] ** \
                     2)) / (np.sqrt(2 * np.pi) * sigma[j]))
                 plt.xlabel(r'$r \frac{d\theta}{dz}$ [unitless]')
-                plt.xlim(-4 * sigma[j], 4 * sigma[j])
-                plt.ylim(0, 40000)
+                plt.xlim(-4 * sigma[0], 4 * sigma[0])
+                plt.ylim(0, 7000)
                 plt.gca().get_xaxis().get_major_formatter().set_powerlimits(
                     (0, 1))
                 plt.gca().get_yaxis().get_major_formatter().set_powerlimits(
