@@ -32,7 +32,7 @@ public:
   Statistics();
   // Initializes a statistics object corresponding to an empty beam.
 
-  Statistics(Particle* beam, std::size_t particles);
+  Statistics(Particle* beam, std::size_t particles, double gamma, double gamma_prime);
   // Initializes a statistics object corresponding to the specified beam.
 
   Statistics(Statistics a, Statistics b);

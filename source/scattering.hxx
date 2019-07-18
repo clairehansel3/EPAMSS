@@ -29,8 +29,8 @@ public:
              double vartheta_cutoff, double omega_off_axis,
              double gamma_minimum_angle, bool print_info);
 
-  void scatter(double x, double& px, double y, double& py, double gamma,
-    double bennett_radius, double rho_ion, double delta);
+  void scatter(double x, double& vx, double y, double& vy, double gamma,
+    double gamma_prime, double bennett_radius, double rho_ion, double delta);
 
 private:
 

@@ -22,17 +22,19 @@
 #include <iostream>
 
 void initializeBeam(Particle* beam, std::size_t particles,
-  double bennett_radius_initial, double gamma_initial, double sigma_r,
-  double sigma_r_prime_initial, bool modified_bennett)
+  double bennett_radius_initial, double gamma_initial, double gamma_prime,
+  double sigma_r, double sigma_r_prime_initial, bool modified_bennett)
 {
+  double sqrt_gamma = std::sqrt(gamma_initial);
+
   for (std::size_t particle = 0; particle != particles; ++particle) {
 
     #ifdef EPAMSS_TEST_SCATTERING
 
     beam[particle].x = 0;
     beam[particle].y = 0;
-    beam[particle].px = 0;
-    beam[particle].py = 0;
+    beam[particle].vx = 0;
+    beam[particle].vy = 0;
 
     #else
 
@@ -52,10 +54,14 @@ void initializeBeam(Particle* beam, std::size_t particles,
     double r_theta_prime = randomNormal(0, sigma_r_prime_initial);
 
     // convert to phase space
-    beam[particle].x = r * std::cos(theta);
-    beam[particle].y = r * std::sin(theta);
-    beam[particle].px = gamma_initial * (r_prime * std::cos(theta) - r_theta_prime * std::sin(theta));
-    beam[particle].py = gamma_initial * (r_prime * std::sin(theta) + r_theta_prime * std::cos(theta));
+    double x = r * std::cos(theta);
+    double y = r * std::sin(theta);
+    double vx = (r_prime * std::cos(theta) - r_theta_prime * std::sin(theta));
+    double vy = (r_prime * std::sin(theta) + r_theta_prime * std::cos(theta));
+    beam[particle].x = sqrt_gamma * x;
+    beam[particle].vx = vx * sqrt_gamma + 0.5 * x * gamma_prime / sqrt_gamma;
+    beam[particle].y = sqrt_gamma * y;
+    beam[particle].vy = vy * sqrt_gamma + 0.5 * y * gamma_prime / sqrt_gamma;
 
     #endif
 
@@ -84,17 +90,6 @@ void solve(Particle* beam, Statistics* statistics, Scattering& scattering,
       }
     }
 
-    // if the step is an analysis step, record data
-    if (step % stride == 0) {
-      if (phase_space_file) {
-        //write particles to phase space file.
-        phase_space_file->write(reinterpret_cast<char*>(beam),
-          sizeof(Particle) * particles);
-      }
-      // compute statistics
-      statistics[step / stride] = Statistics(beam, particles);
-    }
-
     // compute z dependent parameters
     double gamma_over_gamma_initial = 1 + (gamma_prime * step_size * step / gamma_initial);
     double gamma = gamma_initial * gamma_over_gamma_initial;
@@ -105,55 +100,68 @@ void solve(Particle* beam, Statistics* statistics, Scattering& scattering,
     double bennett_radius_next = bennett_radius_initial * std::pow(gamma_over_gamma_initial_next, -0.25);
     double rho_ion_next = rho_ion_initial * std::sqrt(gamma_over_gamma_initial_next);
 
+    // if the step is an analysis step, record data
+    if (step % stride == 0) {
+      if (phase_space_file) {
+        //write particles to phase space file.
+        phase_space_file->write(reinterpret_cast<char*>(beam),
+          sizeof(Particle) * particles);
+      }
+      // compute statistics
+      statistics[step / stride] = Statistics(beam, particles, gamma, gamma_prime);
+    }
+
     for (std::size_t particle = 0; particle != particles; ++particle) {
 
       // get old phase space coordinates
       double x_old  = beam[particle].x;
-      double px_old = beam[particle].px;
+      double vx_old = beam[particle].vx;
       double y_old  = beam[particle].y;
-      double py_old = beam[particle].py;
+      double vy_old = beam[particle].vy;
 
       #ifdef EPAMSS_TEST_SCATTERING
 
-      double x_new = x_old + step_size * (px_old + 0.5) / gamma;
-      double y_new = y_old + step_size * (py_old + 0.5) / gamma;
-      double px_new = px_old;
-      double py_new = py_old;
+      double x_new = x_old + step_size * vx_old;
+      double y_new = y_old + step_size * vy_old;
+      double vx_new = vx_old;
+      double vy_new = vy_old;
 
       #else
 
       // compute force
       double r2_old = x_old * x_old + y_old * y_old;
-      double value_old = -0.5 * ion_atomic_number * (delta + rho_ion / (1 + (r2_old / (bennett_radius * bennett_radius))));
+      double value_old = (-0.5 * ion_atomic_number / gamma) * (delta + rho_ion / (1 + (r2_old / (gamma * bennett_radius * bennett_radius))));
+      value_old += 0.25 * gamma_prime * gamma_prime / (gamma * gamma);
       double fx_old = value_old * x_old;
       double fy_old = value_old * y_old;
 
 
       // compute new positions
-      double x_new = x_old + step_size * (px_old + 0.5 * step_size * fx_old) / gamma;
-      double y_new = y_old + step_size * (py_old + 0.5 * step_size * fy_old) / gamma;
+      double x_new = x_old + step_size * (vx_old + 0.5 * step_size * fx_old);
+      double y_new = y_old + step_size * (vy_old + 0.5 * step_size * fy_old);
 
       // compute new force
       double r2_new = x_new * x_new + y_new * y_new;
-      double value_new = -0.5 * ion_atomic_number * (delta + rho_ion_next / (1 + (r2_new / (bennett_radius_next * bennett_radius_next))));
+      double value_new = (-0.5 * ion_atomic_number / gamma_next) * (delta + rho_ion / (1 + (r2_new / (gamma_next * bennett_radius_next * bennett_radius_next))));
+      value_new += 0.25 * gamma_prime * gamma_prime / (gamma_next * gamma_next);
       double fx_new = value_new * x_new;
       double fy_new = value_new * y_new;
 
       // compute new momenta
-      double px_new = px_old + 0.5 * step_size * (fx_old + fx_new);
-      double py_new = py_old + 0.5 * step_size * (fy_old + fy_new);
+      double vx_new = vx_old + 0.5 * step_size * (fx_old + fx_new);
+      double vy_new = vy_old + 0.5 * step_size * (fy_old + fy_new);
 
       #endif
 
       // compute scattering
       if (scattering_enabled)
-        scattering.scatter(x_new, px_new, y_new, py_new, gamma_next, bennett_radius_next, rho_ion_next, delta);
+        scattering.scatter(x_new, vx_new, y_new, vy_new, gamma_next, gamma_prime, bennett_radius_next, rho_ion_next, delta);
 
       // write result to beam
       beam[particle].x = x_new;
-      beam[particle].px = px_new;
+      beam[particle].vx = vx_new;
       beam[particle].y = y_new;
-      beam[particle].py = py_new;
+      beam[particle].vy = vy_new;
     }
   }
 }

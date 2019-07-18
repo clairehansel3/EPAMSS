@@ -15,6 +15,7 @@
 
 #include "statistics.hxx"
 #include "solver.hxx"
+#include <cmath>
 
 Statistics::Statistics()
 : m_means{0.0, 0.0, 0.0, 0.0},
@@ -22,17 +23,22 @@ Statistics::Statistics()
   m_particles{0}
 {}
 
-Statistics::Statistics(Particle* beam, std::size_t particles)
+Statistics::Statistics(Particle* beam, std::size_t particles, double gamma, double gamma_prime)
 : m_means{0.0, 0.0, 0.0, 0.0},
   m_covariance_matrix{0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0},
   m_particles{particles}
 {
+  double sqrt_gamma = std::sqrt(gamma);
   // compute means
   for (std::size_t particle = 0; particle != particles; ++particle) {
-    m_means[0] += beam[particle].x;
-    m_means[1] += beam[particle].px;
-    m_means[2] += beam[particle].y;
-    m_means[3] += beam[particle].py;
+    double x = beam[particle].x / sqrt_gamma;
+    double px = sqrt_gamma * beam[particle].vx - 0.5 * x * gamma_prime;
+    double y = beam[particle].y / sqrt_gamma;
+    double py = sqrt_gamma * beam[particle].vy - 0.5 * y * gamma_prime;
+    m_means[0] += x;
+    m_means[1] += px;
+    m_means[2] += y;
+    m_means[3] += py;
   }
   m_means[0] /= particles;
   m_means[1] /= particles;
@@ -41,10 +47,14 @@ Statistics::Statistics(Particle* beam, std::size_t particles)
 
   // compute sigma matrix
   for (std::size_t particle = 0; particle != particles; ++particle) {
-    double delta_x  = beam[particle].x  - m_means[0];
-    double delta_px = beam[particle].px - m_means[1];
-    double delta_y  = beam[particle].y  - m_means[2];
-    double delta_py = beam[particle].py - m_means[3];
+    double x = beam[particle].x / sqrt_gamma;
+    double px = sqrt_gamma * beam[particle].vx - 0.5 * x * gamma_prime;
+    double y = beam[particle].y / sqrt_gamma;
+    double py = sqrt_gamma * beam[particle].vy - 0.5 * y * gamma_prime;
+    double delta_x  = x  - m_means[0];
+    double delta_px = px - m_means[1];
+    double delta_y  = y  - m_means[2];
+    double delta_py = py - m_means[3];
     m_covariance_matrix[0] += delta_x * delta_x;
     m_covariance_matrix[1] += delta_x * delta_px;
     m_covariance_matrix[2] += delta_x * delta_y;

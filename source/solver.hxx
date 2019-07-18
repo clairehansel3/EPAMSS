@@ -20,15 +20,15 @@
 #include <fstream>
 
 struct Particle {
-  double x, px, y, py;
+  double x, vx, y, vy;
 };
 
 class Scattering;
 class Statistics;
 
 void initializeBeam(Particle* beam, std::size_t particles,
-  double bennett_radius_initial, double gamma_initial, double sigma_r,
-  double sigma_r_prime_initial, bool modified_bennett);
+  double bennett_radius_initial, double gamma_initial, double gamma_prime,
+  double sigma_r, double sigma_r_prime_initial, bool modified_bennett);
 
 void solve(Particle* beam, Statistics* statistics, Scattering& scattering,
   std::ofstream* phase_space_file, std::size_t particles, std::size_t steps,

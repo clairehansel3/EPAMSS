@@ -21,26 +21,26 @@ Hoffman2 = False
 def run():
     compute_processes = 1
     parameters = {
-        'rho_ion_initial_si': 9.43718e23,
+        'rho_ion_initial_si': 1e26,
         'plasma_length_si': 1,
-        'beam_energy_initial_gev': 1000,
+        'beam_energy_initial_gev': 10,
         'acceleration_gradient_gev_per_m': 10,
-        'bennett_radius_initial_si': 2.37296e-7,
+        'bennett_radius_initial_si': 2.5e-8,
         'cross_section_radius_si': 1e-8,
-        'unperturbed_plasma_density_si': 9e21,
+        'unperturbed_plasma_density_si': 1e24,
         'integration_tolerance': 1e-10,
         'vartheta_cutoff': 10,
         'ion_atomic_number': 1,
         'minimum_steps_per_betatron_period': 100,
-        'particles_target': 10000,
-        'analysis_points_target': 10,
+        'particles_target': 1000,
+        'analysis_points_target': 1000,
         'spline_points': 1000,
-        'max_order': 0,
+        'max_order': 3,
         'max_integration_depth': 15,
         'output_filename': 'data/output',
         'statistics_filename': 'data/statistics',
         'phase_space_filename': 'data/phase_space',
-        'output_phase_space': True,
+        'output_phase_space': False,
         'modified_bennett': True
     }
     with open('data/input', 'w') as f:

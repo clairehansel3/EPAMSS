@@ -30,14 +30,15 @@ Scattering::Scattering(unsigned max_order, unsigned max_integration_depth,
   m_gamma_minimum_angle{gamma_minimum_angle}
 {}
 
-void Scattering::scatter(double x, double& px, double y, double& py,
-  double gamma, double bennett_radius, double rho_ion, double delta)
+void Scattering::scatter(double x, double& vx, double y, double& vy,
+  double gamma, double gamma_prime, double bennett_radius, double rho_ion,
+  double delta)
 {
   #ifdef EPAMSS_TEST_SCATTERING
   double omega = m_omega_off_axis;
   #else
   double r2 = x * x + y * y;
-  double density = delta + rho_ion * std::pow(1 + r2 / (bennett_radius * bennett_radius), -2);
+  double density = delta + rho_ion * std::pow(1 + r2 / (gamma * bennett_radius * bennett_radius), -2);
   double omega = m_omega_off_axis * density;
   #endif
   double minimum_angle = m_gamma_minimum_angle / gamma;
@@ -50,11 +51,11 @@ void Scattering::scatter(double x, double& px, double y, double& py,
     double beta = 2 * boost::math::constants::pi<double>() * randomUniform();
     double tan_phi_x = std::tan(theta) * std::cos(beta);
     double tan_phi_y = std::tan(theta) * std::sin(beta);
-    double vx = px / gamma;
-    double vy = py / gamma;
-    double delta_vx = tan_phi_x * (1 + vx * vx) / (1 - vx * tan_phi_x);
-    double delta_vy = tan_phi_y * (1 + vy * vy) / (1 - vy * tan_phi_y);
-    px += gamma * delta_vx;
-    py += gamma * delta_vy;
+    double vx_actual = (vx - 0.5 * x * gamma_prime / gamma) / std::sqrt(gamma);
+    double vy_actual = (vy - 0.5 * y * gamma_prime / gamma) / std::sqrt(gamma);
+    double delta_vx_actual = tan_phi_x * (1 + vx_actual * vx_actual) / (1 - vx_actual * tan_phi_x);
+    double delta_vy_actual = tan_phi_y * (1 + vy_actual * vy_actual) / (1 - vy_actual * tan_phi_y);
+    vx += std::sqrt(gamma) * delta_vx_actual;
+    vy += std::sqrt(gamma) * delta_vy_actual;
   }
 }

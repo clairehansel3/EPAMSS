@@ -68,7 +68,7 @@ static void runComputeProcess(boost::mpi::communicator& world, Parameters& p)
   // initialize beam
   auto beam = std::make_unique<Particle[]>(p.particles_per_process);
   initializeBeam(beam.get(), p.particles_per_process, p.bennett_radius_initial,
-    p.gamma_initial, p.sigma_r, p.sigma_r_prime_initial,
+    p.gamma_initial, p.gamma_prime, p.sigma_r, p.sigma_r_prime_initial,
     p.modified_bennett);
 
   // open phase space file
