@@ -244,7 +244,7 @@ class Simulation(object):
             plt.show()
         else:
             plt.savefig(filename)
-        plt.cla()
+        plt.clf()
 
     @staticmethod
     def plotScatteringTest(sims, labels, filename='results/scattering_test.png'):
@@ -261,25 +261,24 @@ class Simulation(object):
             s = sims[i]
             label = labels[i]
             thx = np.std(np.arctan(s.phase_space[1, 1] / s.gamma), axis=0)
-            #thy = np.std(np.arctan(s.phase_space[1, 3] / s.gamma), axis=0)
-            plt.plot(s.z_si, thx, label='simulation {}'.format(label))
+            plt.plot(s.z_si, thx, label=label)
             #plt.plot(s.z_si, thy, label='simulation {} (y)'.format(label))
         # get theoretical values
         z_values = np.linspace(0, sims[0]['plasma_length_si'], 10000)
-        x = 2.674203979E-30 * sims[0]['unperturbed_plasma_density_si'] * \
+        x = (1.6726219e-27 / 630.4) * sims[0]['unperturbed_plasma_density_si'] * \
             z_values
         theory = 26.61458558 * np.sqrt(x) * (1 + 0.038 * np.log(x)) / \
             sims[0]['gamma_initial']
-        plt.plot(z_values, theory, label='theory')
+        plt.plot(z_values, theory, label='Theory')
         plt.gca().get_yaxis().get_major_formatter().set_powerlimits((0, 1))
-        plt.xlabel(r'$z$ [m]')
-        plt.ylabel(r'$\sigma_{\theta}$')
+        plt.xlabel(r'$z$ (m)')
+        plt.ylabel(r'$\sigma_{\theta_x}$')
         plt.legend(loc='upper left')
         if filename is None:
             plt.show()
         else:
             plt.savefig(filename)
-        plt.cla()
+        plt.clf()
 
     def createDistributionMovie(self):
         os.system('rm results/*.mp4')
@@ -333,7 +332,7 @@ class Simulation(object):
                 plt.gca().get_yaxis().get_major_formatter().set_powerlimits(
                     (0, 1))
                 plt.savefig('frames/frame_r_{}_{}'.format(scattering, j))
-                plt.cla()
+                plt.clf()
                 # plot theta distribution
                 th_values = np.linspace(-np.pi, np.pi, points)
                 plt.title(r'z = {} m'.format(self.z_si[j]))
@@ -347,7 +346,7 @@ class Simulation(object):
                 plt.gca().get_yaxis().get_major_formatter().set_powerlimits(
                     (0, 1))
                 plt.savefig('frames/frame_th_{}_{}'.format(scattering, j))
-                plt.cla()
+                plt.clf()
                 # plot r' distribution
                 vr_values = np.linspace(-4 * sigma[j], 4 * sigma[j], points)
                 plt.title(r'z = {} m'.format(self.z_si[j]))
@@ -363,7 +362,7 @@ class Simulation(object):
                 plt.gca().get_yaxis().get_major_formatter().set_powerlimits(
                     (0, 1))
                 plt.savefig('frames/frame_vr_{}_{}'.format(scattering, j))
-                plt.cla()
+                plt.clf()
                 # plot r' distribution
                 rvth_values = np.linspace(-4 * sigma[j], 4 * sigma[j], points)
                 plt.title(r'z = {} m'.format(self.z_si[j]))
@@ -379,7 +378,7 @@ class Simulation(object):
                 plt.gca().get_yaxis().get_major_formatter().set_powerlimits(
                     (0, 1))
                 plt.savefig('frames/frame_rvth_{}_{}'.format(scattering, j))
-                plt.cla()
+                plt.clf()
             os.system('ffmpeg -i \'frames/frame_r_{}_%d.png\' -vcodec libx264 -'
                 'vf scale=640:-2,format=yuv420p results/movie_r_{}.mp4'.format(
                 scattering, scattering))

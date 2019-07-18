@@ -18,86 +18,92 @@ import numpy as np
 import simulation
 import subprocess
 
+rerun = True
+
 def main1():
     compute_processes = 1
     sims = []
     labels = []
-    cross_section_radii_si = np.logspace(-15, -6, 10)
-    for run_number, cross_section_radius_si in enumerate(cross_section_radii_si):
+    exponents = np.arange(-10, -5)
+    for run_number, exponent in enumerate(exponents):
         run = 'rsigma_{}'.format(run_number)
-        parameters = {
-            'rho_ion_initial_si': 9.43718e23, # irrelevant
-            'plasma_length_si': 100,
-            'beam_energy_initial_gev': 10,
-            'acceleration_gradient_gev_per_m': 0,
-            'bennett_radius_initial_si': 2.37296e-7, # irrelevant
-            'cross_section_radius_si': cross_section_radius_si,
-            'unperturbed_plasma_density_si': 1e26,
-            'integration_tolerance': 1e-10,
-            'vartheta_cutoff': 10,
-            'ion_atomic_number': 1,
-            'minimum_steps_per_betatron_period': 1000, # steps
-            'particles_target': 1000,
-            'analysis_points_target': 1000,
-            'spline_points': 1000,
-            'max_order': 3,
-            'max_integration_depth': 15,
-            'output_filename': 'data/output_{}'.format(run),
-            'statistics_filename': 'data/statistics_{}'.format(run),
-            'phase_space_filename': 'data/phase_space_{}'.format(run),
-            'output_phase_space': True,
-            'modified_bennett': True # irrelevant
-        }
-        with open('data/input_{}'.format(run), 'w') as f:
-            for key, value in parameters.items():
-                f.write('{} = {}\n'.format(key, value))
-        subprocess.run(
-            ['mpirun', '-np', str(compute_processes+1), 'epamss',
-            'data/input_{}'.format(run)], check=True
-        )
+        cross_section_radius_si = 10. ** exponent
+        if rerun:
+            parameters = {
+                'rho_ion_initial_si': 9.43718e23, # irrelevant
+                'plasma_length_si': 100,
+                'beam_energy_initial_gev': 10,
+                'acceleration_gradient_gev_per_m': 0,
+                'bennett_radius_initial_si': 2.37296e-7, # irrelevant
+                'cross_section_radius_si': cross_section_radius_si,
+                'unperturbed_plasma_density_si': 1e26,
+                'integration_tolerance': 1e-10,
+                'vartheta_cutoff': 10,
+                'ion_atomic_number': 1,
+                'minimum_steps_per_betatron_period': 100000, # steps
+                'particles_target': 1000,
+                'analysis_points_target': 1000,
+                'spline_points': 1000,
+                'max_order': 3,
+                'max_integration_depth': 15,
+                'output_filename': 'data/output_{}'.format(run),
+                'statistics_filename': 'data/statistics_{}'.format(run),
+                'phase_space_filename': 'data/phase_space_{}'.format(run),
+                'output_phase_space': True,
+                'modified_bennett': True # irrelevant
+            }
+            with open('data/input_{}'.format(run), 'w') as f:
+                for key, value in parameters.items():
+                    f.write('{} = {}\n'.format(key, value))
+            subprocess.run(
+                ['mpirun', '-np', str(compute_processes+1), 'epamss',
+                'data/input_{}'.format(run)], check=True
+            )
         sims.append(simulation.Simulation('data/output_{}'.format(run)))
-        labels.append(r'$r_{\sigma} = ' + r'{}$'.format(cross_section_radius_si))
+        labels.append(r'$r_{\sigma} = 10^{' + str(exponent) + '}$')
     simulation.Simulation.plotScatteringTest(sims, labels, filename='results/rsigma.png')
 
 def main2():
     compute_processes = 1
     sims = []
     labels = []
-    stepss = (1, 10, 100, 1000, 10000, 100000)
-    for run_number, steps in enumerate(stepss):
+    exponents = np.arange(3, 7)
+    for run_number, exponent in enumerate(exponents):
+        steps = 10 ** exponent
         run = 'steps_{}'.format(run_number)
-        parameters = {
-            'rho_ion_initial_si': 9.43718e23, # irrelevant
-            'plasma_length_si': 100,
-            'beam_energy_initial_gev': 10,
-            'acceleration_gradient_gev_per_m': 0,
-            'bennett_radius_initial_si': 2.37296e-7, # irrelevant
-            'cross_section_radius_si': 1e-8,
-            'unperturbed_plasma_density_si': 1e26,
-            'integration_tolerance': 1e-10,
-            'vartheta_cutoff': 10,
-            'ion_atomic_number': 1,
-            'minimum_steps_per_betatron_period': steps, # steps
-            'particles_target': 1000,
-            'analysis_points_target': 1000,
-            'spline_points': 1000,
-            'max_order': 3,
-            'max_integration_depth': 15,
-            'output_filename': 'data/output_{}'.format(run),
-            'statistics_filename': 'data/statistics_{}'.format(run),
-            'phase_space_filename': 'data/phase_space_{}'.format(run),
-            'output_phase_space': True,
-            'modified_bennett': True # irrelevant
-        }
-        with open('data/input_{}'.format(run), 'w') as f:
-            for key, value in parameters.items():
-                f.write('{} = {}\n'.format(key, value))
-        subprocess.run(
-            ['mpirun', '-np', str(compute_processes+1), 'epamss',
-            'data/input_{}'.format(run)], check=True
-        )
+        if rerun:
+            parameters = {
+                'rho_ion_initial_si': 9.43718e23, # irrelevant
+                'plasma_length_si': 100,
+                'beam_energy_initial_gev': 10,
+                'acceleration_gradient_gev_per_m': 0,
+                'bennett_radius_initial_si': 2.37296e-7, # irrelevant
+                'cross_section_radius_si': 1e-8,
+                'unperturbed_plasma_density_si': 1e26,
+                'integration_tolerance': 1e-10,
+                'vartheta_cutoff': 10,
+                'ion_atomic_number': 1,
+                'minimum_steps_per_betatron_period': steps, # steps
+                'particles_target': 1000,
+                'analysis_points_target': 1000,
+                'spline_points': 1000,
+                'max_order': 3,
+                'max_integration_depth': 15,
+                'output_filename': 'data/output_{}'.format(run),
+                'statistics_filename': 'data/statistics_{}'.format(run),
+                'phase_space_filename': 'data/phase_space_{}'.format(run),
+                'output_phase_space': True,
+                'modified_bennett': True # irrelevant
+            }
+            with open('data/input_{}'.format(run), 'w') as f:
+                for key, value in parameters.items():
+                    f.write('{} = {}\n'.format(key, value))
+            subprocess.run(
+                ['mpirun', '-np', str(compute_processes+1), 'epamss',
+                'data/input_{}'.format(run)], check=True
+            )
         sims.append(simulation.Simulation('data/output_{}'.format(run)))
-        labels.append('steps = {}'.format(steps))
+        labels.append('$10^{' + str(exponent) + '}$ steps')
     simulation.Simulation.plotScatteringTest(sims, labels, filename='results/steps.png')
 
 if __name__ == '__main__':
