@@ -13,7 +13,7 @@ module unload gcc/4.9.3
 module load gcc/7.2.0
 module load openmpi/3.1.3
 module unload intel/13.cs
-mpirun -n $NSLOTS /u/home/c/claireha/EPAMSS/epamss data/input
+mpirun -n $NSLOTS /u/home/c/claireha/EPAMSS/epamss $1
 
 # echo job info on joblog:
 echo "Job $JOB_ID ended on:   " `hostname -s`

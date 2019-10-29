@@ -93,12 +93,12 @@ void solve(Particle* beam, Statistics* statistics, Scattering& scattering,
     // compute z dependent parameters
     double gamma_over_gamma_initial = 1 + (gamma_prime * step_size * step / gamma_initial);
     double gamma = gamma_initial * gamma_over_gamma_initial;
-    double bennett_radius = bennett_radius_initial * std::pow(gamma_over_gamma_initial, -0.25);
-    double rho_ion_div_n0 = rho_ion_div_n0_initial * std::sqrt(gamma_over_gamma_initial);
+    double bennett_radius = bennett_radius_initial * std::pow(gamma_over_gamma_initial, -0.5);//std::pow(gamma_over_gamma_initial, -0.25);
+    double rho_ion_div_n0 = rho_ion_div_n0_initial * gamma_over_gamma_initial;//std::sqrt(gamma_over_gamma_initial);
     double gamma_over_gamma_initial_next = 1 + (gamma_prime * step_size * (step + 1) / gamma_initial);
     double gamma_next = gamma_initial * gamma_over_gamma_initial_next;
-    double bennett_radius_next = bennett_radius_initial * std::pow(gamma_over_gamma_initial_next, -0.25);
-    double rho_ion_div_n0_next = rho_ion_div_n0_initial * std::sqrt(gamma_over_gamma_initial_next);
+    double bennett_radius_next = bennett_radius_initial * std::pow(gamma_over_gamma_initial_next, -0.5);//std::pow(gamma_over_gamma_initial_next, -0.25);
+    double rho_ion_div_n0_next = rho_ion_div_n0_initial * gamma_over_gamma_initial_next;//std::sqrt(gamma_over_gamma_initial_next);
 
     // if the step is an analysis step, record data
     if (step % stride == 0) {

@@ -247,12 +247,12 @@ class Simulation(object):
             self['actual_analysis_points'])
         self.gamma = self['gamma_initial'] + self['gamma_prime'] * self.z
         self.bennett_radius = self['bennett_radius_initial'] * ((self.gamma /
-            self['gamma_initial']) ** (-1/4))
+            self['gamma_initial']) ** (-1/2))
         self.bennett_radius_si = self['bennett_radius_initial_si'] * ((
-            self.gamma / self['gamma_initial']) ** (-1/4))
-        self.rho_ion_div_n0 = self['rho_ion_div_n0_initial'] * np.sqrt(
+            self.gamma / self['gamma_initial']) ** (-1/2))
+        self.rho_ion_div_n0 = self['rho_ion_div_n0_initial'] * (
             self.gamma / self['gamma_initial'])
-        self.rho_ion_si = self['rho_ion_initial_si'] * np.sqrt(self.gamma /
+        self.rho_ion_si = self['rho_ion_initial_si'] * (self.gamma /
             self['gamma_initial'])
         self.means, self.covariance_matrix = getStatistics(self._output_dict)
         if read_phase_space and self['output_phase_space']:
@@ -269,13 +269,13 @@ class Simulation(object):
 
     def plot2DEmittance(self, filename='results/2Demittance.png'):
         plt.plot(self.z_si, self.emittances_2d_si[0, 0, :] * 1e9,
-            label='x (no scattering)', color='blue')
+            label='x (scattering off)', color='blue')
         plt.plot(self.z_si, self.emittances_2d_si[0, 1, :] * 1e9,
-            label='y (no scattering)', color='green')
+            label='y (scattering off)', color='green')
         plt.plot(self.z_si, self.emittances_2d_si[1, 0, :] * 1e9,
-            label='x (scattering)', color='red')
+            label='x (scattering on)', color='red')
         plt.plot(self.z_si, self.emittances_2d_si[1, 1, :] * 1e9,
-            label='y (scattering)', color='orange')
+            label='y (scattering on)', color='orange')
         plt.xlim(0, self['plasma_length_si'])
         plt.xlabel(r'$z$ (m)')
         plt.ylabel(r'$\epsilon_N$ (nm)')
@@ -365,15 +365,15 @@ class Simulation(object):
                 plt.title(r'z = {} m'.format(self.z_si[j]))
                 plt.hist(r * self['plasma_skin_depth_si'], density=True,
                     bins=bins, range=(0, r_div_a_max *
-                    self.bennett_radius_si[0]))
+                    self.bennett_radius_si[j]))
                 plt.plot(r_values * self['plasma_skin_depth_si'], r_pdf *
                     self['plasma_angular_wavenumber_si'], label='modified')
                 plt.plot(r_values * self['plasma_skin_depth_si'],
                     r_pdf_unmodified * self['plasma_angular_wavenumber_si'],
                     label='unmodified')
                 plt.xlabel(r'$r$ [m]')
-                plt.xlim(0, r_div_a_max * self.bennett_radius_si[0])
-                plt.ylim(0, 35000000)
+                plt.xlim(0, r_div_a_max * self.bennett_radius_si[j])
+                #plt.ylim(0, 35000000 * 2)
                 plt.legend()
                 plt.gca().get_xaxis().get_major_formatter().set_powerlimits(
                     (0, 1))
@@ -398,13 +398,13 @@ class Simulation(object):
                 # plot r' distribution
                 vr_values = np.linspace(-4 * sigma[0], 4 * sigma[0], points)
                 plt.title(r'z = {} m'.format(self.z_si[j]))
-                plt.hist(vr, density=True, bins=bins, range=(-4 * sigma[0],
-                    4 * sigma[0]))
+                plt.hist(vr, density=True, bins=bins, range=(-4 * sigma[j],
+                    4 * sigma[j]))
                 plt.plot(vr_values, np.exp(-vr_values ** 2 / (2 * sigma[j] ** \
                     2)) / (np.sqrt(2 * np.pi) * sigma[j]))
                 plt.xlabel(r'$\frac{dr}{dz}$ [unitless]')
-                plt.xlim(-4 * sigma[0], 4 * sigma[0])
-                plt.ylim(0, 7000)
+                plt.xlim(-4 * sigma[j], 4 * sigma[j])
+                #plt.ylim(0, 7000 * 2)
                 plt.gca().get_xaxis().get_major_formatter().set_powerlimits(
                     (0, 1))
                 plt.gca().get_yaxis().get_major_formatter().set_powerlimits(
@@ -414,13 +414,13 @@ class Simulation(object):
                 # plot r' distribution
                 rvth_values = np.linspace(-4 * sigma[0], 4 * sigma[0], points)
                 plt.title(r'z = {} m'.format(self.z_si[j]))
-                plt.hist(rvth, density=True, bins=bins, range=(-4 * sigma[0], 4 *
-                    sigma[0]))
+                plt.hist(rvth, density=True, bins=bins, range=(-4 * sigma[j], 4 *
+                    sigma[j]))
                 plt.plot(rvth_values, np.exp(-rvth_values ** 2 / (2 * sigma[j] ** \
                     2)) / (np.sqrt(2 * np.pi) * sigma[j]))
                 plt.xlabel(r'$r \frac{d\theta}{dz}$ [unitless]')
-                plt.xlim(-4 * sigma[0], 4 * sigma[0])
-                plt.ylim(0, 7000)
+                plt.xlim(-4 * sigma[j], 4 * sigma[j])
+                #plt.ylim(0, 7000 * 2)
                 plt.gca().get_xaxis().get_major_formatter().set_powerlimits(
                     (0, 1))
                 plt.gca().get_yaxis().get_major_formatter().set_powerlimits(
