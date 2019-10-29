@@ -2,7 +2,7 @@
 mkdir data
 mkdir results
 cp ../../scripts/simulation.py .
-make clean
+cp ../../scripts/run_epamss.sh .
 make
+cp epamss ../../epamss
 python3 scattering.py run
-python3 scattering.py analyze
