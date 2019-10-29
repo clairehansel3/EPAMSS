@@ -1,10 +1,9 @@
 CXX   = mpicxx
-FLAGS = -Wall -Wextra -std=c++17 -O3 -flto -ffast-math -DNDEBUG -DEPAMSS_TEST_SCATTERING -I ../../source \
-	-I /u/home/c/claireha/prefix/include
+FLAGS = -Wall -Wextra -std=c++17 -O3 -flto -ffast-math -DNDEBUG -DEPAMSS_TEST_SCATTERING -I ../../source
 OBJS  = ../../source/LambertW/LambertW.o ../../source/input.o ../../source/main.o \
 				../../source/moliere.o ../../source/scattering.o ../../source/solver.o \
 				../../source/statistics.o ../../source/random.o
-LIBS  = /u/home/c/claireha/prefix/lib/libboost_mpi.a
+LIBS  = /usr/local/lib/libboost_mpi.dylib
 EXEC  = epamss
 
 $(EXEC): $(OBJS)

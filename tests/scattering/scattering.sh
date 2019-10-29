@@ -1,5 +1,8 @@
+#!/bin/sh
 mkdir data
 mkdir results
-ln -s ../../scripts/simulation.py
-ln -s ../../scripts/run_epamss.sh
+cp ../../scripts/simulation.py .
+make clean
 make
+python3 scattering.py run
+python3 scattering.py analyze

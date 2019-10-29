@@ -62,7 +62,7 @@ def run(run_name='run1', parameters={}, hoffman2=False, compute_processes=1):
         )
     else:
         subprocess.run(
-            ['mpirun', '-np', str(compute_processes + 1), 'epamss', 'data/{}_input'.format(run_name)],
+            ['mpirun', '--oversubscribe', '-np', str(compute_processes + 1), 'epamss', 'data/{}_input'.format(run_name)],
             check=True
         )
     return simulation.Simulation(parameters['output_filename'] if 'output_filename' in parameters else parameter_defaults['output_filename'])

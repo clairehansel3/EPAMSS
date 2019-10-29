@@ -38,7 +38,7 @@ import sys
 def parameterDefaults(run_name):
     return {
         'rho_ion_initial_si': 1e26,
-        'plasma_length_si': 0.01,
+        'plasma_length_si': 1,
         'beam_energy_initial_gev': 10,
         'acceleration_gradient_gev_per_m': 0,
         'bennett_radius_initial_si': 2.5e-8,
@@ -78,22 +78,20 @@ def run(run_name='run1', parameters={}, hoffman2=False, compute_processes=1):
         )
     else:
         subprocess.run(
-            ['mpirun', '-np', str(compute_processes + 1), 'epamss', 'data/{}_input'.format(run_name)],
+            ['mpirun', '--oversubscribe', '-np', str(compute_processes + 1), 'epamss', 'data/{}_input'.format(run_name)],
             check=True
         )
-    #return simulation.Simulation(parameters['output_filename'] if 'output_filename' in parameters else parameter_defaults['output_filename'])
-
 
 def submitjobs():
     exponents = np.arange(-10, -5)
     for run_number, exponent in enumerate(exponents):
         runname = 'rsigma_{}'.format(exponent)
-        run(runname, {'cross_section_radius_si': 10. ** exponent, 'minimum_steps_per_betatron_period': 100000}, hoffman2=True, compute_processes=3)
+        run(runname, {'cross_section_radius_si': 10. ** exponent, 'minimum_steps_per_betatron_period': 100000}, hoffman2=False, compute_processes=3)
     exponents2 = np.arange(3, 7)
     for run_number, exponent in enumerate(exponents2):
         steps = 10 ** exponent
         runname = 'steps_{}'.format(run_number)
-        run(runname, {'cross_section_radius_si': 1e-8, 'minimum_steps_per_betatron_period': 10 ** exponent}, hoffman2=True, compute_processes=3)
+        run(runname, {'cross_section_radius_si': 1e-8, 'minimum_steps_per_betatron_period': 10 ** exponent}, hoffman2=False, compute_processes=3)
 
 def analyze():
     sims1 = []
