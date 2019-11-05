@@ -26,7 +26,7 @@ def getOutputDict(output_filename):
     'ion_atomic_number' is a python int).
     '''
     parameter_types = {
-        'rho_ion_initial_si': float,
+        'rho_ion_si': float,
         'plasma_length_si': float,
         'beam_energy_initial_gev': float,
         'acceleration_gradient_gev_per_m': float,
@@ -51,7 +51,7 @@ def getOutputDict(output_filename):
         'plasma_frequency_si': float,
         'plasma_angular_wavenumber_si': float,
         'plasma_skin_depth_si': float,
-        'rho_ion_div_n0_initial': float,
+        'rho_ion_div_n0': float,
         'plasma_length': float,
         'gamma_initial': float,
         'gamma_prime': float,
@@ -60,7 +60,6 @@ def getOutputDict(output_filename):
         'delta': float,
         'gamma_final': float,
         'bennett_radius_final': float,
-        'rho_ion_div_n0_final': float,
         'betatron_frequency_final': float,
         'betatron_period_final': float,
         'betatron_frequency_final_si': float,
@@ -176,8 +175,6 @@ def getPhaseSpace(output_dict, gamma):
         print('done transposing')
     # undo coordinate transform
     sqrt_gamma = np.sqrt(gamma)
-    print(phase_space.shape)
-    print(sqrt_gamma.shape)
     for i in range(2):
         for j in range(output_dict['actual_particles']):
             phase_space[i, 0, j] /= sqrt_gamma
@@ -247,18 +244,14 @@ class Simulation(object):
             self['actual_analysis_points'])
         self.gamma = self['gamma_initial'] + self['gamma_prime'] * self.z
         self.bennett_radius = self['bennett_radius_initial'] * ((self.gamma /
-            self['gamma_initial']) ** (-1/2))
+            self['gamma_initial']) ** (-1/4))
         self.bennett_radius_si = self['bennett_radius_initial_si'] * ((
-            self.gamma / self['gamma_initial']) ** (-1/2))
-        self.rho_ion_div_n0 = self['rho_ion_div_n0_initial'] * (
-            self.gamma / self['gamma_initial'])
-        self.rho_ion_si = self['rho_ion_initial_si'] * (self.gamma /
-            self['gamma_initial'])
+            self.gamma / self['gamma_initial']) ** (-1/4))
         self.means, self.covariance_matrix = getStatistics(self._output_dict)
         if read_phase_space and self['output_phase_space']:
             self.phase_space = getPhaseSpace(self._output_dict, self.gamma)
             self.energy = getEnergy(self._output_dict, self.phase_space,
-                self.gamma, self.bennett_radius, self.rho_ion_div_n0)
+                self.gamma, self.bennett_radius, self['rho_ion_div_n0'])
         self.emittance_4d_si = get4DEmittance(self.covariance_matrix) * \
             (self['plasma_skin_depth_si'] ** 2)
         self.emittances_2d_si = get2DEmittances(self.covariance_matrix) * \
@@ -334,7 +327,7 @@ class Simulation(object):
         bins = 100
         total_frames = 2 * self['actual_analysis_points']
         sigma = self.bennett_radius_si * np.sqrt(np.pi * 2.8179403227e-15 * \
-            self['ion_atomic_number'] * self.rho_ion_si / (2 * self.gamma))
+            self['ion_atomic_number'] * self['rho_ion_si'] / (2 * self.gamma))
         for i, scattering in enumerate(('ns', 's')):
             for j in range(self['actual_analysis_points']):
                 frame_number = j + i * self['actual_analysis_points']
@@ -426,6 +419,62 @@ class Simulation(object):
                 plt.gca().get_yaxis().get_major_formatter().set_powerlimits(
                     (0, 1))
                 plt.savefig('frames/frame_rvth_{}_{}'.format(scattering, j))
+                plt.clf()
+                # 4d
+                plt.subplot(221)
+                plt.hist(r * self['plasma_skin_depth_si'], density=True,
+                    bins=bins, range=(0, r_div_a_max *
+                    self.bennett_radius_si[j]), label='simulation')
+                plt.plot(r_values * self['plasma_skin_depth_si'], r_pdf *
+                    self['plasma_angular_wavenumber_si'], label='theory')
+                plt.xlabel(r'$r$ [m]')
+                plt.xlim(0, r_div_a_max * self.bennett_radius_si[j])
+                plt.gca().get_xaxis().get_major_formatter().set_powerlimits(
+                    (0, 1))
+                plt.gca().get_yaxis().get_major_formatter().set_powerlimits(
+                    (0, 1))
+                plt.legend()
+                plt.subplot(222)
+                plt.hist(th, density=True, bins=bins, range=(-np.pi, np.pi), label='simulation')
+                plt.plot(th_values, np.ones_like(th_values)/(2 * np.pi), label='theory')
+                plt.xlabel(r'$\theta$ [rad]')
+                plt.xlim(-np.pi, np.pi)
+                plt.ylim(0, 0.3)
+                plt.gca().get_xaxis().get_major_formatter().set_powerlimits(
+                    (0, 1))
+                plt.gca().get_yaxis().get_major_formatter().set_powerlimits(
+                    (0, 1))
+                plt.legend()
+                plt.subplot(223)
+                # plot r' distribution
+                vr_values = np.linspace(-4 * sigma[0], 4 * sigma[0], points)
+                plt.hist(vr, density=True, bins=bins, range=(-4 * sigma[j],
+                    4 * sigma[j]), label='simulation')
+                plt.plot(vr_values, np.exp(-vr_values ** 2 / (2 * sigma[j] ** \
+                    2)) / (np.sqrt(2 * np.pi) * sigma[j]), label='theory')
+                plt.xlabel(r'$\frac{dr}{dz}$ [unitless]')
+                plt.xlim(-4 * sigma[j], 4 * sigma[j])
+                plt.gca().get_xaxis().get_major_formatter().set_powerlimits(
+                    (0, 1))
+                plt.gca().get_yaxis().get_major_formatter().set_powerlimits(
+                    (0, 1))
+                plt.legend()
+                plt.subplot(224)
+                # plot r' distribution
+                rvth_values = np.linspace(-4 * sigma[0], 4 * sigma[0], points)
+                plt.hist(rvth, density=True, bins=bins, range=(-4 * sigma[j], 4 *
+                    sigma[j]), label='simulation')
+                plt.plot(rvth_values, np.exp(-rvth_values ** 2 / (2 * sigma[j] ** \
+                    2)) / (np.sqrt(2 * np.pi) * sigma[j]), label='theory')
+                plt.xlabel(r'$r \frac{d\theta}{dz}$ [unitless]')
+                plt.xlim(-4 * sigma[j], 4 * sigma[j])
+                plt.gca().get_xaxis().get_major_formatter().set_powerlimits(
+                    (0, 1))
+                plt.gca().get_yaxis().get_major_formatter().set_powerlimits(
+                    (0, 1))
+                plt.legend()
+                plt.tight_layout()
+                plt.savefig('frames/combined_{}_{}'.format(scattering, j), dpi=500)
                 plt.clf()
             os.system('ffmpeg -i \'frames/frame_r_{}_%d.png\' -vcodec libx264 -'
                 'vf scale=640:-2,format=yuv420p results/movie_r_{}.mp4'.format(

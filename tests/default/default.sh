@@ -1,7 +1,7 @@
 #!/bin/sh
-make
-cp ../../scripts/run.py .
-cp ../../scripts/simulation.py .
+ln ../../scripts/run.py .
+ln ../../scripts/simulation.py .
+ln ../../epamss .
 mkdir data
 mkdir results
 python3 run.py

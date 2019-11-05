@@ -72,7 +72,7 @@ void initializeBeam(Particle* beam, std::size_t particles,
 void solve(Particle* beam, Statistics* statistics, Scattering& scattering,
   std::ofstream* phase_space_file, std::size_t particles, std::size_t steps,
   std::size_t stride, std::size_t ion_atomic_number, double step_size,
-  double bennett_radius_initial, double rho_ion_div_n0_initial, double gamma_initial,
+  double bennett_radius_initial, double rho_ion_div_n0, double gamma_initial,
   double gamma_prime, double delta, bool scattering_enabled,
   bool print_progress)
 {
@@ -93,12 +93,10 @@ void solve(Particle* beam, Statistics* statistics, Scattering& scattering,
     // compute z dependent parameters
     double gamma_over_gamma_initial = 1 + (gamma_prime * step_size * step / gamma_initial);
     double gamma = gamma_initial * gamma_over_gamma_initial;
-    double bennett_radius = bennett_radius_initial * std::pow(gamma_over_gamma_initial, -0.5);//std::pow(gamma_over_gamma_initial, -0.25);
-    double rho_ion_div_n0 = rho_ion_div_n0_initial * gamma_over_gamma_initial;//std::sqrt(gamma_over_gamma_initial);
+    double bennett_radius = bennett_radius_initial * std::pow(gamma_over_gamma_initial, -0.25);
     double gamma_over_gamma_initial_next = 1 + (gamma_prime * step_size * (step + 1) / gamma_initial);
     double gamma_next = gamma_initial * gamma_over_gamma_initial_next;
-    double bennett_radius_next = bennett_radius_initial * std::pow(gamma_over_gamma_initial_next, -0.5);//std::pow(gamma_over_gamma_initial_next, -0.25);
-    double rho_ion_div_n0_next = rho_ion_div_n0_initial * gamma_over_gamma_initial_next;//std::sqrt(gamma_over_gamma_initial_next);
+    double bennett_radius_next = bennett_radius_initial * std::pow(gamma_over_gamma_initial_next, -0.25);
 
     // if the step is an analysis step, record data
     if (step % stride == 0) {
@@ -142,7 +140,7 @@ void solve(Particle* beam, Statistics* statistics, Scattering& scattering,
 
       // compute new force
       double r2_new = x_new * x_new + y_new * y_new;
-      double value_new = (-0.5 * ion_atomic_number / gamma_next) * (delta + rho_ion_div_n0_next / (1 + (r2_new / (gamma_next * bennett_radius_next * bennett_radius_next))));
+      double value_new = (-0.5 * ion_atomic_number / gamma_next) * (delta + rho_ion_div_n0 / (1 + (r2_new / (gamma_next * bennett_radius_next * bennett_radius_next))));
       value_new += 0.25 * gamma_prime * gamma_prime / (gamma_next * gamma_next);
       double fx_new = value_new * x_new;
       double fy_new = value_new * y_new;
@@ -155,7 +153,7 @@ void solve(Particle* beam, Statistics* statistics, Scattering& scattering,
 
       // compute scattering
       if (scattering_enabled)
-        scattering.scatter(x_new, vx_new, y_new, vy_new, gamma_next, gamma_prime, bennett_radius_next, rho_ion_div_n0_next, delta);
+        scattering.scatter(x_new, vx_new, y_new, vy_new, gamma_next, gamma_prime, bennett_radius_next, rho_ion_div_n0, delta);
 
       // write result to beam
       beam[particle].x = x_new;

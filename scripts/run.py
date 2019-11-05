@@ -21,7 +21,7 @@ import subprocess
 
 def parameterDefaults(run_name):
     return {
-        'rho_ion_initial_si': 1e26,
+        'rho_ion_si': 1e26,
         'plasma_length_si': 0.01,
         'beam_energy_initial_gev': 10,
         'acceleration_gradient_gev_per_m': 10000,
@@ -45,7 +45,7 @@ def parameterDefaults(run_name):
         'modified_bennett': True
     }
 
-def run(run_name='run1', parameters={}, hoffman2=False, compute_processes=1):
+def run(run_name='default', parameters={}, hoffman2=False, compute_processes=1):
     parameter_defaults = parameterDefaults(run_name)
     assert all(key in parameter_defaults for key in parameters)
     with open('data/{}_input'.format(run_name), 'w') as f:
