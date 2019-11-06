@@ -32,13 +32,13 @@ Scattering::Scattering(unsigned max_order, unsigned max_integration_depth,
 
 void Scattering::scatter(double x, double& vx, double y, double& vy,
   double gamma, double gamma_prime, double bennett_radius, double rho_ion_div_n0,
-  double delta)
+  double delta, double drive_multiplier)
 {
   #ifdef EPAMSS_TEST_SCATTERING
   double omega = m_omega_off_axis;
   #else
   double r2 = x * x + y * y;
-  double density = delta + rho_ion_div_n0 * std::pow(1 + r2 / (gamma * bennett_radius * bennett_radius), -2);
+  double density = drive_multiplier * (delta + rho_ion_div_n0 * std::pow(1 + r2 / (gamma * bennett_radius * bennett_radius), -2));
   double omega = m_omega_off_axis * density;
   #endif
   double minimum_angle = m_gamma_minimum_angle / gamma;

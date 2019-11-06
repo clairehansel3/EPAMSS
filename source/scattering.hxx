@@ -30,7 +30,8 @@ public:
              double gamma_minimum_angle, bool print_info);
 
   void scatter(double x, double& vx, double y, double& vy, double gamma,
-    double gamma_prime, double bennett_radius, double rho_ion_div_n0, double delta);
+    double gamma_prime, double bennett_radius, double rho_ion_div_n0, double delta,
+    double drive_multiplier);
 
 private:
 

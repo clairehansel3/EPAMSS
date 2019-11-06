@@ -35,6 +35,8 @@ def getOutputDict(output_filename):
         'unperturbed_plasma_density_si': float,
         'integration_tolerance': float,
         'vartheta_cutoff': float,
+        'drive_amplitude': float,
+        'drive_angular_frequency': float,
         'ion_atomic_number': int,
         'minimum_steps_per_betatron_period': int,
         'particles_target': int,
