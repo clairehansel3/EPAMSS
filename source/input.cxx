@@ -243,6 +243,7 @@ Parameters::Parameters(const char* input_path, boost::mpi::communicator& world)
   EPAMSS_READ_PARAMETER(dict, phase_space_filename);
   EPAMSS_READ_PARAMETER(dict, output_phase_space);
   EPAMSS_READ_PARAMETER(dict, modified_bennett);
+  EPAMSS_READ_PARAMETER(dict, scattering2);
 
   if (world.rank() == 0) {
     for (auto pair : dict) {
@@ -289,6 +290,7 @@ void Parameters::writeOutputFile(double seconds)
     EPAMSS_WRITE(file, phase_space_filename, "");
     EPAMSS_WRITE_BOOL(file, output_phase_space);
     EPAMSS_WRITE_BOOL(file, modified_bennett);
+    EPAMSS_WRITE_BOOL(file, scattering2);
 
     EPAMSS_WRITE(file, plasma_frequency_si, "s^-1");
     EPAMSS_WRITE(file, plasma_angular_wavenumber_si, "m^-1");
@@ -301,6 +303,10 @@ void Parameters::writeOutputFile(double seconds)
     EPAMSS_WRITE(file, cross_section_radius, "");
     EPAMSS_WRITE(file, delta, "");
     EPAMSS_WRITE(file, gamma_final, "");
+    EPAMSS_WRITE(file, betatron_frequency_initial, "");
+    EPAMSS_WRITE(file, betatron_period_initial, "");
+    EPAMSS_WRITE(file, betatron_frequency_initial_si, "m^-1");
+    EPAMSS_WRITE(file, betatron_period_initial_si, "m");
     EPAMSS_WRITE(file, bennett_radius_final, "");
     EPAMSS_WRITE(file, betatron_frequency_final, "");
     EPAMSS_WRITE(file, betatron_period_final, "");
@@ -354,6 +360,10 @@ void Parameters::computeDependentParameters(int processes)
   double gamma_final_over_gamma_initial = 1 + (gamma_prime * plasma_length / gamma_initial);
   gamma_final = gamma_initial * gamma_final_over_gamma_initial;
   bennett_radius_final = bennett_radius_initial * std::pow(gamma_final_over_gamma_initial, -0.25);
+  betatron_frequency_initial = std::sqrt((ion_atomic_number * (rho_ion_div_n0 + delta) / (2 * gamma_initial)) - (gamma_prime * gamma_prime / (4 * gamma_initial * gamma_initial)));
+  betatron_period_initial = 2 * boost::math::constants::pi<double>() / betatron_frequency_initial;
+  betatron_frequency_initial_si = plasma_angular_wavenumber_si * betatron_frequency_initial;
+  betatron_period_initial_si = plasma_skin_depth_si * betatron_period_initial;
   betatron_frequency_final = std::sqrt((ion_atomic_number * (rho_ion_div_n0 + delta) / (2 * gamma_final)) - (gamma_prime * gamma_prime / (4 * gamma_final * gamma_final)));
   betatron_period_final = 2 * boost::math::constants::pi<double>() / betatron_frequency_final;
   betatron_frequency_final_si = plasma_angular_wavenumber_si * betatron_frequency_final;

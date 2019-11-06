@@ -43,7 +43,8 @@ def parameterDefaults(run_name):
         'statistics_filename': 'data/{}_statistics'.format(run_name),
         'phase_space_filename': 'data/{}_phase_space'.format(run_name),
         'output_phase_space': True,
-        'modified_bennett': True
+        'modified_bennett': True,
+        'scattering2': True
     }
 
 def run(run_name='default', parameters={}, hoffman2=False, compute_processes=1):

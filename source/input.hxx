@@ -49,6 +49,7 @@ public:
   std::string output_filename;
   std::string statistics_filename;
   std::string phase_space_filename;
+  bool scattering2;
   bool output_phase_space;
   bool modified_bennett;
 
@@ -65,6 +66,10 @@ public:
   double delta;
   double gamma_final;
   double bennett_radius_final;
+  double betatron_frequency_initial;
+  double betatron_period_initial;
+  double betatron_frequency_initial_si;
+  double betatron_period_initial_si;
   double betatron_frequency_final;
   double betatron_period_final;
   double betatron_frequency_final_si;

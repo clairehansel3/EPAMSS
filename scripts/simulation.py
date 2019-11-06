@@ -50,6 +50,7 @@ def getOutputDict(output_filename):
         'phase_space_filename': str,
         'output_phase_space': bool,
         'modified_bennett': bool,
+        'scattering2': bool,
         'plasma_frequency_si': float,
         'plasma_angular_wavenumber_si': float,
         'plasma_skin_depth_si': float,
@@ -61,6 +62,10 @@ def getOutputDict(output_filename):
         'cross_section_radius': float,
         'delta': float,
         'gamma_final': float,
+        'betatron_frequency_initial': float,
+        'betatron_period_initial': float,
+        'betatron_frequency_initial_si': float,
+        'betatron_period_initial_si': float,
         'bennett_radius_final': float,
         'betatron_frequency_final': float,
         'betatron_period_final': float,
@@ -422,6 +427,7 @@ class Simulation(object):
                     (0, 1))
                 plt.savefig('frames/frame_rvth_{}_{}'.format(scattering, j))
                 plt.clf()
+                '''
                 # 4d
                 plt.subplot(221)
                 plt.hist(r * self['plasma_skin_depth_si'], density=True,
@@ -478,6 +484,7 @@ class Simulation(object):
                 plt.tight_layout()
                 plt.savefig('frames/combined_{}_{}'.format(scattering, j), dpi=500)
                 plt.clf()
+                '''
             os.system('ffmpeg -i \'frames/frame_r_{}_%d.png\' -vcodec libx264 -'
                 'vf scale=640:-2,format=yuv420p results/movie_r_{}.mp4'.format(
                 scattering, scattering))
@@ -490,3 +497,6 @@ class Simulation(object):
             os.system('ffmpeg -i \'frames/frame_rvth_{}_%d.png\' -vcodec libx26'
                 '4 -vf scale=640:-2,format=yuv420p results/movie_rvth_{}.mp4'
                 .format(scattering, scattering))
+            #os.system('ffmpeg -i \'frames/combined_{}_%d.png\' -vcodec libx26'
+            #    '4 -vf scale=640:-2,format=yuv420p results/movie_rvth_{}.mp4'
+            #    .format(scattering, scattering))
