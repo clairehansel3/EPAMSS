@@ -9,6 +9,7 @@ echo "Job $JOB_ID started on:   " `hostname -s`
 echo "Job $JOB_ID started on:   " `date `
 
 . /u/local/Modules/default/init/modules.sh
+export LD_LIBRARY_PATH="/u/home/c/claireha/prefix/lib:$LD_LIBRARY_PATH"
 module unload gcc/4.9.3
 module load gcc/7.2.0
 module load openmpi/3.1.3

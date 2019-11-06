@@ -5,7 +5,7 @@ FLAGS = -Wall -Wextra -std=c++17 -O3 -flto -ffast-math -DNDEBUG \
 OBJS  = source/LambertW/LambertW.o source/input.o source/main.o \
 				source/moliere.o source/scattering.o source/solver.o \
 				source/statistics.o source/random.o
-LIBS  = -lboost_mpi
+LIBS  = -lboost_mpi -lboost_serialization
 EXEC  = epamss
 
 $(EXEC): $(OBJS)

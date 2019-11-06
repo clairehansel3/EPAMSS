@@ -31,7 +31,6 @@ def parameterDefaults(run_name):
         'integration_tolerance': 1e-10,
         'vartheta_cutoff': 10,
         'ion_atomic_number': 1,
-        'seed': 1563489705,
         'minimum_steps_per_betatron_period': 100,
         'particles_target': 100,
         'analysis_points_target': 100,
@@ -62,10 +61,10 @@ def run(run_name='default', parameters={}, hoffman2=False, compute_processes=1):
         )
     else:
         subprocess.run(
-            ['mpirun', '--oversubscribe', '-np', str(compute_processes + 1), 'epamss', 'data/{}_input'.format(run_name)],
+            ['mpirun', '-np', str(compute_processes + 1), 'epamss2', 'data/{}_input'.format(run_name)],
             check=True
         )
-    return simulation.Simulation(parameters['output_filename'] if 'output_filename' in parameters else parameter_defaults['output_filename'])
+        #return simulation.Simulation(parameters['output_filename'] if 'output_filename' in parameters else parameter_defaults['output_filename'])
 
 
 def main():
