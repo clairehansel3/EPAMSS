@@ -30,6 +30,8 @@ def parameterDefaults(run_name):
         'unperturbed_plasma_density_si': 1e24,
         'integration_tolerance': 1e-10,
         'vartheta_cutoff': 10,
+        'drive_amplitude': 0,
+        'drive_angular_frequency':0,
         'ion_atomic_number': 1,
         'minimum_steps_per_betatron_period': 100,
         'particles_target': 100,

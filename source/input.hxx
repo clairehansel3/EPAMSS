@@ -36,6 +36,8 @@ public:
   double unperturbed_plasma_density_si;
   double integration_tolerance;
   double vartheta_cutoff;
+  double drive_amplitude;
+  double drive_angular_frequency;
   std::size_t ion_atomic_number;
   std::size_t minimum_steps_per_betatron_period;
   std::size_t particles_target;

@@ -214,6 +214,8 @@ Parameters::Parameters(const char* input_path, boost::mpi::communicator& world)
   EPAMSS_READ_PARAMETER(dict, unperturbed_plasma_density_si);
   EPAMSS_READ_PARAMETER(dict, integration_tolerance);
   EPAMSS_READ_PARAMETER(dict, vartheta_cutoff);
+  EPAMSS_READ_PARAMETER(dict, drive_amplitude);
+  EPAMSS_READ_PARAMETER(dict, drive_angular_frequency);
   EPAMSS_READ_PARAMETER(dict, ion_atomic_number);
   EPAMSS_READ_PARAMETER(dict, minimum_steps_per_betatron_period);
   EPAMSS_READ_PARAMETER(dict, particles_target);
@@ -272,6 +274,8 @@ void Parameters::writeOutputFile(double seconds)
     EPAMSS_WRITE(file, unperturbed_plasma_density_si, "m^-3");
     EPAMSS_WRITE(file, integration_tolerance, "");
     EPAMSS_WRITE(file, vartheta_cutoff, "");
+    EPAMSS_WRITE(file, drive_amplitude, "");
+    EPAMSS_WRITE(file, drive_angular_frequency, "");
     EPAMSS_WRITE(file, ion_atomic_number, "");
     EPAMSS_WRITE(file, minimum_steps_per_betatron_period, "");
     EPAMSS_WRITE(file, particles_target, "");

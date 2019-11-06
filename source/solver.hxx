@@ -34,7 +34,7 @@ void solve(Particle* beam, Statistics* statistics, Scattering& scattering,
   std::ofstream* phase_space_file, std::size_t particles, std::size_t steps,
   std::size_t stride, std::size_t ion_atomic_number, double step_size,
   double bennett_radius_initial, double rho_ion_div_n0, double gamma_initial,
-  double gamma_prime, double delta, bool scattering_enabled,
-  bool print_progress);
+  double gamma_prime, double delta, double drive_amplitude,
+  double drive_angular_frequency, bool scattering_enabled, bool print_progress);
 
 #endif
