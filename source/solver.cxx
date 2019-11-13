@@ -97,8 +97,8 @@ void solve(Particle* beam, Statistics* statistics, Scattering& scattering,
     double gamma_over_gamma_initial_next = 1 + (gamma_prime * step_size * (step + 1) / gamma_initial);
     double gamma_next = gamma_initial * gamma_over_gamma_initial_next;
     double bennett_radius_next = bennett_radius_initial * std::pow(gamma_over_gamma_initial_next, -0.25);
-    double drive_multiplier = 1 + drive_amplitude * std::sin(drive_angular_frequency * step_size * steps);
-    double drive_multiplier_next = 1 + drive_amplitude * std::sin(drive_angular_frequency * step_size * (steps + 1));
+    double drive_multiplier = 1 + drive_amplitude * std::sin(drive_angular_frequency * step_size * step);
+    double drive_multiplier_next = 1 + drive_amplitude * std::sin(drive_angular_frequency * step_size * (step + 1));
 
     // if the step is an analysis step, record data
     if (step % stride == 0) {
