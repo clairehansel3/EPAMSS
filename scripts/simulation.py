@@ -37,6 +37,7 @@ def getOutputDict(output_filename):
         'vartheta_cutoff': float,
         'drive_amplitude': float,
         'drive_angular_frequency': float,
+        'factor': float,
         'ion_atomic_number': int,
         'minimum_steps_per_betatron_period': int,
         'particles_target': int,

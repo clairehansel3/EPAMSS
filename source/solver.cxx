@@ -14,6 +14,7 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 #include "solver.hxx"
+#include "gaussian_noise.hxx"
 #include "random.hxx"
 #include "scattering.hxx"
 #include "statistics.hxx"
@@ -74,8 +75,11 @@ void solve(Particle* beam, Statistics* statistics, Scattering& scattering,
   std::size_t stride, std::size_t ion_atomic_number, double step_size,
   double bennett_radius_initial, double rho_ion_div_n0, double gamma_initial,
   double gamma_prime, double delta, double drive_amplitude,
-  double drive_angular_frequency, bool scattering_enabled, bool print_progress)
+  double drive_angular_frequency, double factor, bool scattering_enabled,
+  bool print_progress)
 {
+
+  auto rho_ion_div_n0_array = get_density(rho_ion_div_n0, steps + 1, factor);
 
   int percent = -1;
 
@@ -130,7 +134,7 @@ void solve(Particle* beam, Statistics* statistics, Scattering& scattering,
 
       // compute force
       double r2_old = x_old * x_old + y_old * y_old;
-      double value_old = (-0.5 * ion_atomic_number / gamma) * drive_multiplier * (delta + rho_ion_div_n0 / (1 + (r2_old / (gamma * bennett_radius * bennett_radius))));
+      double value_old = (-0.5 * ion_atomic_number / gamma) * drive_multiplier * (delta + rho_ion_div_n0_array[step] / (1 + (r2_old / (gamma * bennett_radius * bennett_radius))));
       value_old += 0.25 * gamma_prime * gamma_prime / (gamma * gamma);
       double fx_old = value_old * x_old;
       double fy_old = value_old * y_old;
@@ -142,7 +146,7 @@ void solve(Particle* beam, Statistics* statistics, Scattering& scattering,
 
       // compute new force
       double r2_new = x_new * x_new + y_new * y_new;
-      double value_new = (-0.5 * ion_atomic_number / gamma_next) * drive_multiplier_next * (delta + rho_ion_div_n0 / (1 + (r2_new / (gamma_next * bennett_radius_next * bennett_radius_next))));
+      double value_new = (-0.5 * ion_atomic_number / gamma_next) * drive_multiplier_next * (delta + rho_ion_div_n0_array[step] / (1 + (r2_new / (gamma_next * bennett_radius_next * bennett_radius_next))));
       value_new += 0.25 * gamma_prime * gamma_prime / (gamma_next * gamma_next);
       double fx_new = value_new * x_new;
       double fy_new = value_new * y_new;
@@ -155,7 +159,7 @@ void solve(Particle* beam, Statistics* statistics, Scattering& scattering,
 
       // compute scattering
       if (scattering_enabled)
-        scattering.scatter(x_new, vx_new, y_new, vy_new, gamma_next, gamma_prime, bennett_radius_next, rho_ion_div_n0, delta, drive_multiplier_next);
+        scattering.scatter(x_new, vx_new, y_new, vy_new, gamma_next, gamma_prime, bennett_radius_next, rho_ion_div_n0_array[step], delta, drive_multiplier_next);
 
       // write result to beam
       beam[particle].x = x_new;

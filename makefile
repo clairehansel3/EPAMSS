@@ -4,7 +4,7 @@ FLAGS = -Wall -Wextra -std=c++17 -O3 -flto -ffast-math -DNDEBUG \
 				-L /u/home/c/claireha/prefix/lib/
 OBJS  = source/LambertW/LambertW.o source/input.o source/main.o \
 				source/moliere.o source/scattering.o source/solver.o \
-				source/statistics.o source/random.o
+				source/statistics.o source/random.o source/gaussian_noise.o
 LIBS  = -lboost_mpi -lboost_serialization
 EXEC  = epamss
 

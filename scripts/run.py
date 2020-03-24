@@ -18,14 +18,15 @@ import matplotlib.pyplot as plt
 import numpy as np
 import simulation
 import subprocess
+import os.path
 
 def parameterDefaults(run_name):
     return {
         'rho_ion_si': 1e26,
-        'plasma_length_si': 0.01,
+        'plasma_length_si': 1,
         'beam_energy_initial_gev': 10,
-        'acceleration_gradient_gev_per_m': 10000,
-        'bennett_radius_initial_si': 2.5e-8,
+        'acceleration_gradient_gev_per_m': 10,
+        'bennett_radius_initial_si': 170e-9,
         'cross_section_radius_si': 1e-8,
         'unperturbed_plasma_density_si': 1e24,
         'integration_tolerance': 1e-10,
@@ -33,16 +34,16 @@ def parameterDefaults(run_name):
         'drive_amplitude': 0,
         'drive_angular_frequency':0,
         'ion_atomic_number': 1,
-        'minimum_steps_per_betatron_period': 100,
-        'particles_target': 100,
-        'analysis_points_target': 100,
+        'minimum_steps_per_betatron_period': 200,
+        'particles_target': 50000,
+        'analysis_points_target': 1000,
         'spline_points': 1000,
         'max_order': 3,
         'max_integration_depth': 15,
         'output_filename': 'data/{}_output'.format(run_name),
         'statistics_filename': 'data/{}_statistics'.format(run_name),
         'phase_space_filename': 'data/{}_phase_space'.format(run_name),
-        'output_phase_space': True,
+        'output_phase_space': False,
         'modified_bennett': True,
         'scattering2': True
     }
@@ -67,12 +68,14 @@ def run(run_name='default', parameters={}, hoffman2=False, compute_processes=1):
             ['mpirun', '-np', str(compute_processes + 1), 'epamss2', 'data/{}_input'.format(run_name)],
             check=True
         )
-        #return simulation.Simulation(parameters['output_filename'] if 'output_filename' in parameters else parameter_defaults['output_filename'])
+    if os.path.isfile('data/{}_output'.format(run_name)):
+        return simulation.Simulation(parameters['output_filename'] if 'output_filename' in parameters else parameter_defaults['output_filename'])
 
 
 def main():
-    s = run()
-    s.plot2DEmittance()
+    s = run(run_name='facet2', hoffman2=True, compute_processes=63)
+    if s is not None:
+        s.plot2DEmittance()
 
 if __name__ == '__main__':
     main()

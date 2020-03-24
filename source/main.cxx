@@ -89,7 +89,7 @@ static void runComputeProcess(boost::mpi::communicator& world, Parameters& p)
     solve(beam_copy.get(), statistics.get(), scattering, phase_space_file_ptr,
       p.particles_per_process, p.steps, p.stride, p.ion_atomic_number,
       p.step_size, p.bennett_radius_initial, p.rho_ion_div_n0, p.gamma_initial,
-      p.gamma_prime, p.delta, 0.0, 0.0,
+      p.gamma_prime, p.delta, 0.0, 0.0, 0.0,
       false, world.rank() == 1);
     world.send(0, 1, reinterpret_cast<char*>(statistics.get()),
        sizeof(Statistics) * p.actual_analysis_points);
@@ -102,7 +102,7 @@ static void runComputeProcess(boost::mpi::communicator& world, Parameters& p)
       p.particles_per_process, p.steps, p.stride, p.ion_atomic_number,
       p.step_size, p.bennett_radius_initial, p.rho_ion_div_n0, p.gamma_initial,
       p.gamma_prime, p.delta, p.drive_amplitude, p.drive_angular_frequency,
-      p.scattering2, world.rank() == 1);
+      p.factor, p.scattering2, world.rank() == 1);
     world.send(0, 1, reinterpret_cast<char*>(statistics.get()),
        sizeof(Statistics) * p.actual_analysis_points);
   }
