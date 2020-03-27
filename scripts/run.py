@@ -33,6 +33,7 @@ def parameterDefaults(run_name):
         'vartheta_cutoff': 10,
         'drive_amplitude': 0,
         'drive_angular_frequency':0,
+        'factor': 0,
         'ion_atomic_number': 1,
         'minimum_steps_per_betatron_period': 200,
         'particles_target': 50000,
@@ -65,7 +66,7 @@ def run(run_name='default', parameters={}, hoffman2=False, compute_processes=1):
         )
     else:
         subprocess.run(
-            ['mpirun', '-np', str(compute_processes + 1), 'epamss2', 'data/{}_input'.format(run_name)],
+            ['mpirun', '-np', str(compute_processes + 1), 'epamss', 'data/{}_input'.format(run_name)],
             check=True
         )
     if os.path.isfile('data/{}_output'.format(run_name)):

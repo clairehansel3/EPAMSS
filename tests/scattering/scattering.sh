@@ -1,8 +1,8 @@
 #!/bin/sh
 mkdir data
 mkdir results
-cp ../../scripts/simulation.py .
-cp ../../scripts/run_epamss.sh .
+#cp ../../scripts/simulation.py .
+cp ../../scripts/run.py .
 make
-cp epamss ../../epamss
 python3 scattering.py run
+python3 scattering.py analyze

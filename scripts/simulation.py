@@ -18,6 +18,10 @@ import numpy as np
 import os
 import scipy.integrate
 
+electron_rest_energy_mev = 0.510998
+c_light = 299792458
+classical_electron_radius = 2.8179403227e-15
+
 def getOutputDict(output_filename):
     '''
     Takes the path to the output file as an argument and returns a dict
@@ -298,6 +302,7 @@ class Simulation(object):
     @staticmethod
     def plotScatteringTest(sims, labels, filename='results/scatteringtest.png'):
         # check assertions
+        plt.rcParams.update({'font.size': 14})
         parameters = ('unperturbed_plasma_density_si', 'plasma_length_si',
             'beam_energy_initial_gev')
         for parameter in parameters:
@@ -318,16 +323,74 @@ class Simulation(object):
             * z_values
         theory = 26.61458558 * np.sqrt(x) * (1 + 0.038 * np.log(x)) / \
             sims[0]['gamma_initial']
-        plt.plot(z_values, theory, label='Theory')
-        plt.gca().get_yaxis().get_major_formatter().set_powerlimits((0, 1))
+        plt.plot(z_values, theory, color='black', label='Theory')
+        plt.yticks([0, .5e-4, 1e-4, 1.5e-4, 2e-4], labels=[r"$0$", r"$0.5$", r"$1$", r"$1.5$", r"$2$"])
         plt.xlabel(r'$z$ (m)')
-        plt.ylabel(r'$\sigma_{\theta_x}$')
-        plt.legend(loc='upper left')
+        plt.ylabel(r'$\sigma_{\phi_x} (\times 10^{-4})$')
+        #plt.legend(loc='upper left')
         if filename is None:
             plt.show()
         else:
-            plt.savefig(filename)
+            plt.savefig(filename, dpi=500)
         plt.clf()
+
+    def plotEndDistribution(self):
+        x = self.phase_space[0, 0, :, -1] * self['plasma_skin_depth_si']
+        vx = c_light * self.phase_space[0, 1, :, -1] / self.gamma[-1]
+        y = self.phase_space[0, 2, :, -1] * self['plasma_skin_depth_si']
+        vy = c_light * self.phase_space[0, 3, :, -1] / self.gamma[-1]
+        sigma_r = 0.5 * self.bennett_radius_si[-1] * np.sqrt(self['rho_ion_div_n0'])
+        sigma_r_dot = self.bennett_radius_si[-1] * c_light * np.sqrt(np.pi * classical_electron_radius * self['ion_atomic_number'] * self['rho_ion_si'] / (2 * self.gamma[-1]))
+        r = np.sqrt(x ** 2 + y ** 2)
+        th = np.arctan2(y, x)
+        vr = (x * vx + y * vy) / r
+        rvth = (x * vy - y * vx) / r
+        r = r[r < 5 * self.bennett_radius_si[-1]]
+        vr = vr[np.logical_and(-5 * sigma_r_dot <= vr, vr <= 5 * sigma_r_dot)]
+        rvth = rvth[np.logical_and(-5 * sigma_r_dot <= rvth, rvth <= 5 * sigma_r_dot)]
+        unnormalized_pdf = lambda r: r * np.exp(-r ** 2 / (2 * sigma_r ** 2)) / ((1 + ((r / self.bennett_radius_si[-1]) ** 2)) ** 2)
+        normalization_factor = scipy.integrate.quad(unnormalized_pdf, 0, 5 * self.bennett_radius_si[-1])[0]
+        r_pdf = lambda r: unnormalized_pdf(r) / normalization_factor
+
+        fig, ((ax1, ax2), (ax3, ax4)) = plt.subplots(nrows=2, ncols=2, figsize=(6.4, 4.8))
+
+        ax1.hist(r, density=True, bins=100, range=(0, 5 * self.bennett_radius_si[-1]))
+        ax1.plot(np.linspace(0, 5 * self.bennett_radius_si[-1], 1000), r_pdf(np.linspace(0, 5 * self.bennett_radius_si[-1], 1000)), color='C3')
+        ax1.set_xlabel(r'$r$')
+        ax1.set_xticks([0, 5 * self.bennett_radius_si[-1]])
+        ax1.set_xticklabels([r'$0$', r'$5a$'])
+        ax1.set_yticks([])
+        ax1.set_yticklabels([])
+
+        ax2.hist(th, density=True, bins=100, range=(-np.pi, np.pi))
+        ax2.plot([-np.pi, np.pi], [1 / (2 * np.pi), 1 / (2 * np.pi)], color='C3')
+        ax2.set_xlabel(r'$\theta$')
+        ax2.set_xticks([-np.pi, 0, np.pi])
+        ax2.set_xticklabels([r'$-\pi$', r'$0$', r'$\pi$'])
+        ax2.set_yticks([])
+        ax2.set_yticklabels([])
+
+        v_values = np.linspace(-5 * sigma_r_dot, 5 * sigma_r_dot, 1000)
+
+        ax3.hist(vr, density=True, bins=100, range=(-5 * sigma_r_dot, 5 * sigma_r_dot))
+        ax3.plot(v_values, np.exp(-v_values ** 2 / (2 * sigma_r_dot ** 2)) / (np.sqrt(2 * np.pi) * sigma_r_dot), color='C3')
+        ax3.set_xlabel(r'$\dot{r}$')
+        ax3.set_xticks([-5*sigma_r_dot, 0, 5*sigma_r_dot])
+        ax3.set_xticklabels([r'$-5\sigma_{\dot{r}}$', r'$0$', r'$5\sigma_{\dot{r}}$'])
+        ax3.set_yticks([])
+        ax3.set_yticklabels([])
+
+        ax4.hist(rvth, density=True, bins=100, range=(-5 * sigma_r_dot, 5 * sigma_r_dot))
+        ax4.plot(v_values, np.exp(-v_values ** 2 / (2 * sigma_r_dot ** 2)) / (np.sqrt(2 * np.pi) * sigma_r_dot), color='C3')
+        ax4.set_xlabel(r'$r \dot{\theta}$')
+        ax4.set_xticks([-5*sigma_r_dot, 0, 5*sigma_r_dot])
+        ax4.set_xticklabels([r'$-5 \sigma_{r\dot{\theta}}$', r'$0$', r'$5\sigma_{r\dot{\theta}}$'])
+        ax4.set_yticks([])
+        ax4.set_yticklabels([])
+
+        fig.tight_layout()#rect=[0, 0, 1, 0.93])
+        fig.savefig('equilibrium.png', dpi=500)
+        plt.close(fig)
 
     def createDistributionMovie(self):
         os.system('rm results/*.mp4')

@@ -25,38 +25,53 @@ example simulation.
 
 An input file is a plain text file where each line is of the form
 "PARAMETER = VALUE". VALUE must be the correct type for the parameter (for
-example 1.5e+14 is an allowed value of 'electron_linear_density' but not
-'particles_target' because 'electron_linear_density' must be a real number and
-'particles_target' must be an integer. The following parameters must be
-specified (in any order):
+example 1.5e+24 is an allowed value of 'rho_ion_si' but not 'particles_target'
+because 'rho_ion_si' must be a real number and 'particles_target' must be an
+integer. The following parameters must be specified (in any order):
 
-• maximum_ion_density (real number, units m^-3)
+• rho_ion_si (real number, units m^-3)
   The maximum number density of plasma ions. Since the plasma ions follow a
   Bennett distribution, this maximum density occurs on axis at r=0.
-• plasma_length (real number, units: m)
+• plasma_length_si (real number, units: m)
   The length of the plasma.
-• beam_energy (real number, units: GeV)
+• beam_energy_initial_gev (real number, units: GeV)
   The energy of electrons in the beam.
-• electron_linear_density (real number, units: m^-1)
-  The number of beam electrons per unit longitudinal length of the beam. Because
-  the electrons are distributed according to a Bennett distribution, the maximum
-  number density of beam electrons occurs on axis and is given by
-  electron_linear_density / (pi * bennett_radius^2).
-• bennett_radius (real number, units: m)
+• acceleration_gradient_gev_per_m (real number, units: GeV/m)
+  Acceleration gradient. All particles are accelerated by a uniform electric
+  field.
+• bennett_radius_initial_si (real number, units: m)
   The Bennett radius of the beam electron and the plasma ion distributions.
-• interaction_radius (real number, units: m)
+• cross_section_radius_si (real number, units: m)
   The length scale of beam electron-plasma ion coulomb scattering. The electron
   ion scattering cross section is given by pi * interaction_radius^2.
-• integration_tolerance (real number)
+• unperturbed_plasma_density_si (real number, units: m^-3)
+  The plasma density n0
+• integration_tolerance (real number) (recommended: 1e-10)
   The tolerance of the numerical integrations used to create the probability
   density function of the multiple scattering angular distribution.
 • vartheta_cutoff
   The parameter vartheta ranges from zero to infinity, but in order to use an
   evenly spaced spline a cutoff value must be chosen. A value of 10 is fine for
   pretty much all cases.
+• drive_amplitude (real number)
+  m(z) = 1 + drive_amplitude * sin(drive_angular_frequency * z). Note that
+  setting this equal to zero turns off sinusoidal density modulation. Note that
+  sinusoidal density modulation is ALWAYS turned off in the first simulation,
+  and so this value only affects the second simulation.
+• drive_angular_frequency (real number)
+  m(z) = 1 + drive_amplitude * sin(drive_angular_frequency * z). Note that
+  setting this equal to zero turns off sinusoidal density modulation. Normalized
+  to the plasma angular wavenumber. Note that sinusoidal density modulation is
+  ALWAYS turned off in the first simulation, and so this value only affects the
+  second simulation.
+• factor (real number)
+  The ion density gaussian white noise standard deviation. Setting this to zero
+  turns off gaussian white noise. Note that gaussian white noise is ALWAYS
+  turned off in the first simulation, and so this value only affects the second
+  simulation.
 • ion_atomic_number (integer)
   The Z of the plasma ion species.
-• minimum_steps_per_betatron_period (integer)
+• minimum_steps_per_betatron_period (integer) (recommended: 200)
   The absolute minimum number of z steps the code uses to track a particle
   during a single betatron oscillation. This parameter is used to compute the
   step size. A value around 200 is good (and probably a little overkill) but the
@@ -73,17 +88,17 @@ specified (in any order):
   adjusted in order for it to divide evenly. The actual number of analysis
   points used is given by the parameter 'actual_analysis_points' in the output
   file.
-• spline_points (integer)
+• spline_points (integer) (recommended: 1000)
   Number of points at which the probability density function of the multiple
   scattering angular distribution is evaluated using numerical integration. A
   spline is then constructed to interpolate between these points.
-• max_order (integer)
+• max_order (integer) (recommended: 3)
   The maximum order in B^-1 the probability density function of the multiple
   scattering angular distribution is computed to. If this parameter is 0, then
   a gaussian approximation will be used and the parameters
   'integration_tolerance', 'vartheta_cutoff', 'spline_points', and
   'max_integration_depth' will no longer matter.
-• max_integration_depth (integer)
+• max_integration_depth (integer) (recommended: 15)
   Maximum number of recursion allowed in adaptive numerical integration when
   evaluating the probability density function of the multiple scattering angular
   distribution.
@@ -102,6 +117,11 @@ specified (in any order):
   Whether or not to generate phase space data. This parameter should be equal to
   either "true" or "false". Note that generating phase space data does increase
   the time the simulation takes and may generate a lot of data.
+• modified_bennett (bool) (recommended: True)
+  This should be set to true.
+• scattering2 (bool)
+  Whether or not to enable scattering in the second simulation. Scattering is
+  ALWAYS disabled in the first simulation.
 
 One parameter is optional and may or may not be included:
 
@@ -109,7 +129,9 @@ One parameter is optional and may or may not be included:
   The seed for the random number generator. If this is not specified, the value
   std::time(nullptr) is automatically used. Two simulations with the same seed
   and the same input parameters run by the same executable should produce the
-  same data.
+  same data. WARNING: this is only true with simulations run with the same
+  number of cores. Each individual process uses a different seed which is based
+  on the process number and the parameter 'seed'.
 
 4) Output Files
 
@@ -120,35 +142,45 @@ input file except it has the following extra parameters (in no particular
 order) which are mostly computed using simple analytical formulae from the
 input file:
 
-• seed (unsigned)
+• seed
   If the seed is not specified in the input file, it is set to
   std::time(nullptr). Otherwise this has the same value as in the input file.
-• ion_linear_density (real, units: m^-1)
-  The number of plasma ions per unit longitudinal length of the plasma.
-• gamma (real)
-  The beam's lorentz factor.
-• alpha (real)
-  The dimensionless parameter alpha (see paper).
-• step_size (real, units: m)
-  The step size of the simulation.
-• cross_section (real, units: m^2)
-  The total beam electron-plasma ion scattering cross section.
-• minimum_angle (real, units: rad)
-  The angle for which smaller angles are ignored for single scattering.
-• betatron_frequency (real, units: m^-1)
-  The frequency of small angle betatron oscillations.
-• betatron_period (real, units: m)
-  The period of small angle betatron oscillations.
-• max_scattering_r_div_a (real)
-  The maximum radius such that particles with a larger radius do not undergo
-  enough scatters per step for molière's theory to be valid. This value is given
-  in units of the Bennett radius.
-• percent_with_scattering (real)
-  The percent of the beam that has radius less than the maximum radius such that
-  particles with a larger radius do not undergo enough scatters per step for
-  molière's theory to be valid.
-• omega_on_axis (real)
-  The value of omega at r=0.
+• plasma_frequency_si
+• plasma_angular_wavenumber_si
+• plasma_skin_depth_si
+• rho_ion_div_n0
+• plasma_length
+• gamma_initial
+• gamma_prime
+• bennett_radius_initial
+• delta
+  Should be equal to 1
+• betatron_frequency_initial
+  Betatron frequency for r << a, z = 0 (for all z if there is no acceleration)
+• betatron_period_initial
+• betatron_frequency_initial_si
+• betatron_period_initial_si
+• bennett_radius_final
+• betatron_frequency_final
+• betatron_period_final
+• betatron_frequency_final_si
+• betatron_period_final_si
+• step_size
+• step_size_si
+• gamma_minimum_angle
+  gamma * theta_min
+• omega_off_axis
+  Omega (see scattering equations) for r >> a
+• omega_on_axis_initial
+  Omega (see scattering equations) for r << a for z = 0 (for all z if there is
+  no acceleration)
+• max_scattering_r_div_a_initial
+  The value X such that for r greater than X bennett radii, no scattering
+  kick is computed since omega < 25
+• sigma_r
+• sigma_r_prime_initial
+  The equilibrium r' standard deviation. Also equal to the standard deviation of
+  r * theta'.
 • steps (integer)
   The total number of steps in the simulation.
 • stride (integer)
@@ -202,44 +234,3 @@ Two Python helper scripts are provided: run.py and analyze.py. run.py generates
 an input file and then runs EPAMSS. analyze.py reads data files and produces
 plots of emittance growth. analyze.py includes a number of helpful functions and
 is designed to be modified.
-
-6) Running an Example Simulation
-
-First follow the instructions in section 1 to install EPAMSS. Make sure to copy
-or link the executable to a folder in your PATH so that the command 'epamss'
-invokes the program. Next create a new folder anywhere for the example
-simulation. For the purposes of this tutorial, $EXAMPLE is the path of this
-folder and $EPAMSS is the path to the git directory containing this readme.
-Now cd to the example directory:
-  cd $EXAMPLE
-copy the python scripts to the example directory:
-  cp $EPAMSS/scripts/*.py .
-Next make the directories 'data' and 'results' in the example directory:
-  mkdir data
-  mkdir results
-Run the simulation:
-  python3 run.py
-Run the analysis:
-  python3 analyze.py
-Plots of the results should now be in $EXAMPLE/results
-
-6) Running on Hoffman2
-
-Unfortunately EPAMSS does not compile with intel's C++ compiler icpc due to lack
-of c++17 compatibility. Additionally the default version of gcc is old, so make
-sure to load the most up to date version of gcc. Python3 is also not loaded by
-default. For MPI I usually use OpenMPI which must be also loaded. The
-preinstalled version of boost on Hoffman2 does not contain boost.MPI, and
-so you must download boost and install it to a prefix in your home folder. Make
-sure boost builds boost.MPI and boost.Math (I don't think it does this by
-default). In the makefile, add '-I /path/to/prefix/include' to FLAGS and remove
-'-lboost_mpi' from LIBS and replace it with '/path/to/prefix/lib/libboost_mpi.a'
-. Running an example simulation is the exact same as in section 6 except that
-you also have to copy 'run_epamss.sh' to your example folder and then you have
-to replace EMAIL_ADDRESS and PATH_TO_EPAMSS_EXECUTABLE with the correct values.
-You also have to set Hoffman2 in 'run.py' to True. I highly recommend using
-sshfs to mount your Hoffman2 home folder to your computer. It is imporant that
-you run 'run.py' from the login node on Hoffman2 but you run analyze.py from
-your local machine. This is because Hoffman2 does not have a ui and thus does
-not have matplotlib functionality. If you don't want to use sshfs, copy the
-example folder back to your local machine to run analyze.py.

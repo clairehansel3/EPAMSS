@@ -4,7 +4,7 @@ import simulation
 import numpy as np
 
 exponents1 = np.arange(-10, -6)
-exponents2 = np.arange(1, 7)
+exponents2 = np.arange(3, 7)
 
 def submit_jobs():
     for run_number, exponent in enumerate(exponents1):
@@ -18,7 +18,8 @@ def submit_jobs():
                 'unperturbed_plasma_density_si': 1e26,
                 'particles_target': 1000,
                 'cross_section_radius_si': 10. ** exponent,
-                'minimum_steps_per_betatron_period': 10 ** 4
+                'minimum_steps_per_betatron_period': 10 ** 4,
+                'output_phase_space': True
             },
             hoffman2=False,
             compute_processes=7
@@ -34,7 +35,8 @@ def submit_jobs():
                 'unperturbed_plasma_density_si': 1e26,
                 'particles_target': 1000,
                 'cross_section_radius_si': 10. ** -8,
-                'minimum_steps_per_betatron_period': 10 ** exponent
+                'minimum_steps_per_betatron_period': 10 ** exponent,
+                'output_phase_space': True
             },
             hoffman2=False,
             compute_processes=7

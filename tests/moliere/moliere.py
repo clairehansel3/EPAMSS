@@ -1,6 +1,8 @@
 import matplotlib.pyplot as plt
 import numpy as np
 
+plt.rcParams.update({'font.size': 14})
+
 varthetas = []
 pdfs = []
 
@@ -20,8 +22,8 @@ plt.xlim(0, 5)
 plt.ylim(0, 1)
 plt.legend()
 plt.xlabel(r"$\vartheta$")
-plt.ylabel(r"$PDF(\vartheta)$")
-plt.savefig('pdf.png')
+plt.ylabel(r"$\mathrm{PDF}(\vartheta)$")
+plt.savefig('pdf.png', dpi=500)
 plt.cla()
 
 samples = []
@@ -33,12 +35,11 @@ with open('samples') as f:
 samples = np.array(samples).T
 
 for order in (0, 1, 2, 3):
-    plt.title('order {}'.format(order))
-    plt.plot(varthetas, pdfs[order], label='pdf')
-    plt.hist(samples[order], density=True, bins=100, range=(0, 5))
+    plt.plot(varthetas, pdfs[order], label='pdf', color='C3')
+    plt.hist(samples[order], color='C0', density=True, bins=50, range=(0, 5))
     plt.xlim(0, 5)
     plt.ylim(0, 1)
-    plt.legend()
     plt.xlabel(r"$\vartheta$")
-    plt.savefig('samples_order_{}.png'.format(order))
+    plt.ylabel('probability density')
+    plt.savefig('samples_order_{}.png'.format(order), dpi=500)
     plt.cla()
